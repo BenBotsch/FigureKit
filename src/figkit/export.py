@@ -87,7 +87,13 @@ def save(figure: Figure, path: Path, output: Output) -> Path:
         dpi = output.pixels / drawn
     tight: dict[str, Any] = {"bbox_inches": "tight", "pad_inches": PAD} if output.tight else {}
     if output.format == "svg":
-        figure.savefig(path, transparent=output.transparent, **tight, **_SAVE_OPTIONS["svg"])
+        # Saving to a path opens the file in text mode, which writes CRLF on Windows. A binary
+        # buffer keeps LF, so the files are byte-identical on every platform.
+        svg = io.BytesIO()
+        figure.savefig(
+            svg, format="svg", transparent=output.transparent, **tight, **_SAVE_OPTIONS["svg"]
+        )
+        path.write_bytes(svg.getvalue())
         return path
     buffer = io.BytesIO()
     figure.savefig(buffer, format="png", dpi=dpi, transparent=output.transparent, **tight)

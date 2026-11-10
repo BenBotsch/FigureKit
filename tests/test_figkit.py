@@ -88,6 +88,15 @@ def test_svg_files_are_reproducible(tmp_path: Path) -> None:
         assert a.read_bytes() == b.read_bytes()
 
 
+def test_svg_files_end_lines_with_lf_on_every_platform(tmp_path: Path) -> None:
+    paths = figkit.render(tmp_path, "example", chart, outputs=(figkit.SVG,))
+
+    for path in paths:
+        data = path.read_bytes()
+        assert b"\n" in data
+        assert b"\r\n" not in data
+
+
 def test_png_width_follows_the_figure_width(tmp_path: Path) -> None:
     figkit.render(tmp_path, "wide", chart, outputs=(figkit.PNG,))
     figkit.render(tmp_path, "narrow", narrow, outputs=(figkit.PNG,))
