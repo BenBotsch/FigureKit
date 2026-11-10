@@ -10,6 +10,7 @@ from matplotlib.legend import Legend
 from matplotlib.text import Annotation, Text
 from matplotlib.ticker import PercentFormatter
 
+from figkit.language import headless
 from figkit.theme import Theme, tokens
 
 Axis = Literal["x", "y"]
@@ -37,8 +38,11 @@ def title(ax: Axes, text: str, theme: Theme, subtitle: str | None = None) -> Non
     """Title at the top left of the axes, with an optional line of explanation below it.
 
     The subtitle takes the space where :func:`legend_top` would go; with a subtitle, put the
-    legend inside the axes.
+    legend inside the axes. In a headless figure (see :func:`figkit.render`) both are left out,
+    because the page shows them.
     """
+    if headless():
+        return
     size = tokens()["font"]
     if subtitle is None:
         ax.set_title(text)
@@ -80,6 +84,7 @@ def grid(ax: Axes, axis: Axis | Literal["both"] = "y") -> None:
 def percent(ax: Axes, axis: Axis = "y", decimals: int = 0) -> None:
     """Show the axis from 0 to 1 as 0 % to 100 %."""
     target = ax.yaxis if axis == "y" else ax.xaxis
+    # PercentFormatter puts the sign right after the number; render adds the space of German.
     target.set_major_formatter(PercentFormatter(xmax=1, decimals=decimals))
 
 

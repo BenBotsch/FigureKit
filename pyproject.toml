@@ -1,6 +1,6 @@
 [project]
 name = "figkit"
-version = "0.1.2"
+version = "0.2.0"
 description = "One figure style for every project: light and dark themes, transparent SVG and PNG, Bricolage Grotesque and JetBrains Mono, reproducible files."
 readme = "README.md"
 license = "MIT"

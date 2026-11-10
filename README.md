@@ -14,13 +14,16 @@ and writes them as transparent SVG and PNG, ready for a README, the portfolio an
   against the light and dark page colours. Text colours reach WCAG contrast, checked in the tests.
 - **Transparent.** One file per mode fits every page colour of that mode.
 - **Reproducible.** The same figure gives byte-identical SVGs. The files carry no date or version.
-- **Checked.** `figkit check` fails CI on missing light/dark pairs, opaque backgrounds and
-  oversized files.
+- **Two languages.** A website gets each figure without its title in every language, German
+  numbers included, and a `figures.json` with titles and alt texts.
+- **Checked.** `figkit check` fails CI on missing light/dark or language pairs, opaque
+  backgrounds, figures off the canvas, oversized files, missing alt texts and page colours that
+  differ from the website's stylesheet.
 
 ## Install
 
 ```sh
-uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.1.2"
+uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.2.0"
 ```
 
 Pin a tag, so a style change reaches a project only when it updates the tag.
@@ -58,14 +61,41 @@ figkit.render(Path("docs/figures"), "recall", recall)
 | `CARD` | opaque 1200 x 630 PNG for Open Graph; draw on `CARD_INCHES` |
 
 Helpers: `title`, `legend_top`, `grid`, `percent`, `category_axis`, `mono_ticks`, `value`,
-`bar_labels`, `reference_line`, `line_labels`, `ink_on`, `hex_colour`. `canvas` returns the
+`bar_labels`, `reference_line`, `line_labels`, `ink_on`, `hex_colour`, `number`, `localize`,
+`language`. `canvas` returns the
 fixed box that `render` crops to. `figkit.styled(theme)` applies the
 style without writing files, for example in a notebook.
+
+### Figures for a website
+
+The website shows the title as text, so its files leave it out. `page` draws the figure once per
+language, the draw function receives the language as its first argument, and `write_manifest`
+lists the files with their texts:
+
+```python
+TEXT = {
+    "en": figkit.Caption("Recall per class", "All classes above 80 % except rolled-in scale at 74 %."),
+    "de": figkit.Caption("Recall je Klasse", "Alle Klassen über 80 % außer Walzzunder mit 74 %."),
+}
+
+
+def recall_page(language: str, theme: figkit.Theme) -> plt.Figure:
+    ...  # labels from a table per language, numbers with figkit.number(0.74, ".0%")
+
+
+out = Path("docs/figures/page")
+figkit.write_manifest(out, [figkit.page(out, "recall", recall_page, TEXT)])
+# recall.de.svg, recall.de-dark.svg, recall.en.svg, recall.en-dark.svg, figures.json
+```
+
+In German, tick labels and `figkit.number` write `0,74`, `1.500` and `74 %`; other text comes from
+the project. Text below 8 pt is an error, because pages scale the canvas down on phones.
 
 In CI:
 
 ```sh
-uv run figkit check docs/figures
+uv run figkit check docs/figures docs/figures/page
+uv run figkit check --tokens ../Portfolio/src/styles/tokens.css
 ```
 
 ## Rules

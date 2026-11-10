@@ -1,12 +1,19 @@
-"""Checks of a directory of figures, for CI: pairs, transparency, widths and file sizes."""
+"""Checks of figures for CI.
+
+A directory is checked for light/dark and language pairs, transparency, widths, file sizes and
+its ``figures.json``; a stylesheet for the page colours that the figures share with it.
+"""
 
 import re
+from collections import defaultdict
 from collections.abc import Iterable
 from pathlib import Path
 
 from PIL import Image
 
+from figkit import manifest
 from figkit.export import RASTER_DPI, WEB_WIDTH
+from figkit.theme import tokens
 
 FORMATS = (".svg", ".png", ".webp")
 # Bytes. Above these, a chart usually embeds a raster or far too many points.
@@ -16,6 +23,20 @@ PHOTO_PNG_BUDGET = 1_000_000
 # The figure background is the first patch matplotlib writes into an SVG.
 _BACKGROUND = re.compile(r'<g id="patch_1">\s*<path[^>]*style="([^"]*)"')
 _SVG_WIDTH = re.compile(r'<svg[^>]* width="([\d.]+)pt"')
+# ``failure-modes.de`` is the German file of ``failure-modes``.
+_LANGUAGE = re.compile(r"^(?P<name>.+)\.(?P<language>[a-z]{2})$")
+# Portfolio custom property and the figure token it equals in both themes: (key, list index).
+CSS_TOKENS: dict[str, tuple[str, int | None]] = {
+    "bg": ("pages", 0),
+    "surface": ("surface", None),
+    "text": ("ink", None),
+    "muted": ("secondary", None),
+    "border": ("grid", None),
+    "border-strong": ("muted", None),
+}
+_CSS_COLOUR = re.compile(
+    r"--color-([\w-]+):\s*light-dark\(\s*(#[0-9a-fA-F]{6})\s*,\s*(#[0-9a-fA-F]{6})"
+)
 
 
 def _light_name(path: Path) -> str:
@@ -59,6 +80,79 @@ def check(
             _svg_problems(path, width) if path.suffix == ".svg" else _raster_problems(path, width)
         )
         problems += [f"{path.name}: {problem}" for problem in found]
+    problems += _language_problems(files)
+    problems += _manifest_problems(directory, names)
+    return problems
+
+
+def _language_problems(files: Iterable[Path]) -> list[str]:
+    """Every figure that exists in one language exists in all of them."""
+    languages: dict[tuple[str, str], set[str]] = defaultdict(set)
+    for path in files:
+        match = _LANGUAGE.match(_light_name(path))
+        if match:
+            languages[match["name"], path.suffix].add(match["language"])
+    every = set().union(*languages.values()) if languages else set()
+    return [
+        f"{name}{suffix}: missing the {code} file {name}.{code}{suffix}"
+        for (name, suffix), found in sorted(languages.items())
+        for code in sorted(every - found)
+    ]
+
+
+def _manifest_problems(directory: Path, names: set[str]) -> list[str]:
+    """``figures.json`` lists exactly the files of the directory, each with its texts."""
+    data = manifest.load(directory)
+    if data is None:
+        return []
+    problems = []
+    listed: set[str] = set()
+    codes = data.get("languages", [])
+    for entry in data.get("figures", []):
+        name = entry.get("name", "?")
+        for code in codes:
+            for key in ("title", "alt"):
+                if not str(entry.get(key, {}).get(code, "")).strip():
+                    problems.append(f"{manifest.FILE}: {name} has no {key} in {code}")
+            files = entry.get("files", {}).get(code)
+            if files is None:
+                problems.append(f"{manifest.FILE}: {name} has no files in {code}")
+                continue
+            for mode in ("light", "dark"):
+                file = files.get(mode)
+                listed.add(file)
+                if file not in names:
+                    problems.append(f"{manifest.FILE}: {name} lists {file}, which does not exist")
+    page_files = {n for n in names if Path(n).suffix in (".svg", ".webp")}
+    problems += [
+        f"{file}: not in {manifest.FILE}, so the page has no alt text for it"
+        for file in sorted(page_files - listed)
+    ]
+    return problems
+
+
+def check_tokens(css: Path) -> list[str]:
+    """Colours of the figures that differ from the stylesheet of the website.
+
+    Text and lines of the figures use the page colours of ``css``, a file with properties such
+    as ``--color-text: light-dark(#1d1e22, #eceef3)``. A change on one side only shows as text in
+    a figure that no longer matches the page around it.
+    """
+    found = {
+        m[1]: (m[2].lower(), m[3].lower()) for m in _CSS_COLOUR.finditer(css.read_text("utf-8"))
+    }
+    themes = tokens()["themes"]
+    problems = []
+    for prop, (key, index) in CSS_TOKENS.items():
+        if prop not in found:
+            problems.append(f"{css.name}: --color-{prop} is missing")
+            continue
+        for mode, colour in zip(("light", "dark"), found[prop], strict=True):
+            value = themes[mode][key] if index is None else themes[mode][key][index]
+            if value.lower() != colour:
+                problems.append(
+                    f"{css.name}: --color-{prop} is {colour} in {mode}, the figures use {value}"
+                )
     return problems
 
 

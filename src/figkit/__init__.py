@@ -13,7 +13,9 @@ Draw a figure as a function of the :class:`Theme` and let :func:`render` write i
 
     figkit.render(Path("docs/figures"), "f1", draw)
 
-This writes ``f1.svg``, ``f1-dark.svg``, ``f1.png`` and ``f1-dark.png``, all transparent.
+This writes ``f1.svg``, ``f1-dark.svg``, ``f1.png`` and ``f1-dark.png``, all transparent. For a
+website, :func:`page` writes the figure without its title per language, ``f1.de.svg`` and
+``f1.en.svg``, and :func:`write_manifest` lists them with their titles and alt texts.
 """
 
 from figkit.export import (
@@ -28,6 +30,7 @@ from figkit.export import (
     Draw,
     Output,
     canvas,
+    check_text,
     path_for,
     render,
     save,
@@ -47,6 +50,9 @@ from figkit.helpers import (
     title,
     value,
 )
+from figkit.language import headless, language, localize, number
+from figkit.manifest import Caption, page
+from figkit.manifest import write as write_manifest
 from figkit.theme import DARK, LIGHT, THEMES, Theme, rc, register_fonts, styled, tokens
 
 __all__ = [
@@ -61,19 +67,26 @@ __all__ = [
     "THEMES",
     "WEB",
     "WEB_WIDTH",
+    "Caption",
     "Draw",
     "Output",
     "Theme",
     "bar_labels",
     "canvas",
     "category_axis",
+    "check_text",
     "grid",
+    "headless",
     "hex_colour",
     "ink_on",
+    "language",
     "legend_top",
     "line_labels",
+    "localize",
     "mono",
     "mono_ticks",
+    "number",
+    "page",
     "path_for",
     "percent",
     "rc",
@@ -85,4 +98,5 @@ __all__ = [
     "title",
     "tokens",
     "value",
+    "write_manifest",
 ]

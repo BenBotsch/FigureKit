@@ -63,6 +63,7 @@ secondary at least 4.5:1 and muted at least 3:1.
   addition to the legend. Labels that would overlap are moved apart.
 - Use a grid on one axis only, as hairlines. Category axes have no spine and no tick marks.
 - Lines are 2 px wide. Markers are at least 6 pt, and only where points matter.
+- No text below 8 pt. `render` stops with an error that names the text and the figure.
 
 ## 4. Files
 
@@ -74,16 +75,31 @@ secondary at least 4.5:1 and muted at least 3:1.
 card.png          1200 x 630 social preview, opaque (CARD output)
 ```
 
+Files for a website (`figkit.page`) carry the language and no title:
+
+```text
+<name>.<language>.svg        light page, for example recall.de.svg
+<name>.<language>-dark.svg   dark page
+figures.json                 per figure: title, subtitle and alt text per language, files, size in pt
+```
+
+Every language has the same set of figures. German numbers have a decimal comma, a thousands dot and
+a space before the percent sign; tick labels follow automatically, values on the plot use
+`figkit.number`. Names with digits, such as ResNet18, stay as they are.
+
 Photographs and images with overlays use `PHOTO` (WebP and PNG) instead of SVG. The WebP is the
 file for web pages; the PNG is a lossless copy for slides and documents. Every PNG is stored with a
 palette of 256 colours and alpha: the opaque pixels get a median-cut palette, which keeps the tones
 of a photograph without contour lines, and only the anti-aliased edges share the remaining entries.
 Generated figures are never edited by hand. Each project has one command that writes all of them.
 
-`figkit check <directory>` fails CI when a file has no pair, when a figure that should be
+`figkit check <directory>` fails CI when a file has no pair, when a figure is missing in one of the
+languages, when `figures.json` lacks a title or alt text or does not list a page file, when a figure that should be
 transparent is opaque, when a web file is not on the 6.4 in canvas (460.8 pt as SVG, 1600 px as
 PNG; `--any-width` turns this off), or when a file exceeds its budget: SVG 150 KB, PNG and WebP 250 KB, and
 1 MB for a PNG next to a WebP of the same name, the copy of a photograph.
+`figkit check --tokens tokens.css` compares the page, text and line colours with the stylesheet of
+the website.
 
 ## 5. Embedding
 
@@ -103,6 +119,9 @@ The portfolio (`src/components/base/Figure.astro`) reads the size from the SVG:
         darkSrc="/images/projects/<project>/recall-dark.svg"
         alt="..." />
 ```
+
+In the portfolio, a project page takes title, caption, alt text and files of a figure from the
+`figures.json` that the project publishes, in the language of the page.
 
 Slides, LinkedIn and tools without SVG take the PNG.
 

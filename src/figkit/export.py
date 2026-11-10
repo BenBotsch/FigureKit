@@ -20,10 +20,12 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.text import Text
 from matplotlib.transforms import Bbox
 from PIL import Image
 
-from figkit.theme import THEMES, Theme, styled
+from figkit.language import localize_ticks, speaking
+from figkit.theme import THEMES, Theme, styled, tokens
 
 Draw = Callable[[Theme], Figure]
 
@@ -73,10 +75,13 @@ _SAVE_OPTIONS: dict[str, dict[str, Any]] = {
 }
 
 
-def path_for(directory: Path, name: str, theme: Theme, output: Output) -> Path:
-    """File of one figure in one theme and format."""
+def path_for(
+    directory: Path, name: str, theme: Theme, output: Output, language: str | None = None
+) -> Path:
+    """File of one figure in one theme and format, ``<name>[.<language>][-dark].<format>``."""
+    stem = f"{name}.{language}" if language else name
     suffix = "-dark" if theme.name == "dark" else ""
-    return directory / f"{name}{suffix}.{output.format}"
+    return directory / f"{stem}{suffix}.{output.format}"
 
 
 def save(figure: Figure, path: Path, output: Output) -> Path:
@@ -215,12 +220,29 @@ def _entries(values: list[int], channels: int, count: int) -> list[int]:
     return values + [0] * (channels * count - len(values))
 
 
+def check_text(figure: Figure) -> None:
+    """Fail on visible text below the smallest size of the style, which pages make unreadable.
+
+    Raises:
+        ValueError: If a text is smaller than ``font.minimum`` of the tokens.
+    """
+    minimum: float = tokens()["font"]["minimum"]
+    for text in figure.findobj(Text):
+        size = float(text.get_fontsize())
+        if text.get_visible() and text.get_text().strip() and size < minimum:
+            msg = f"text {text.get_text()!r} is {size:g} pt, the minimum is {minimum:g}"
+            raise ValueError(msg)
+
+
 def render(
     directory: Path,
     name: str,
     draw: Draw,
     outputs: Sequence[Output] = WEB,
     themes: Sequence[Theme] = THEMES,
+    *,
+    language: str | None = None,
+    headless: bool = False,
 ) -> list[Path]:
     """Draw one figure in every theme and write it in every output.
 
@@ -228,18 +250,40 @@ def render(
     ``none``, so fills that use ``theme.surface`` as a gap colour become empty as well. The figure
     is drawn once per theme and transparency and closed after writing.
 
+    Args:
+        directory: Folder of the files.
+        name: Name of the figure, the start of every file name.
+        draw: Function of the theme that returns a new figure.
+        outputs: Formats to write.
+        themes: Themes to draw.
+        language: Code such as ``de``. It goes into the file names, ``<name>.de.svg``, and
+            :func:`figkit.language` returns it while ``draw`` runs; numeric tick labels and
+            :func:`figkit.number` follow it. Without it the figure is English and unmarked.
+        headless: Leave out the title and subtitle of :func:`figkit.title`, for a page that
+            shows them as text.
+
     Returns:
         The written files, in the order of ``themes`` and then ``outputs``.
+
+    Raises:
+        ValueError: If the drawing does not fit the canvas or has text below the minimum size;
+            the message names the figure.
     """
     paths: list[Path] = []
     for theme in themes:
         for transparent, group in groupby(outputs, key=lambda o: o.transparent):
             used = replace(theme, surface="none") if transparent else theme
-            with styled(used), plt.rc_context({"svg.hashsalt": name}):
+            with (
+                styled(used),
+                plt.rc_context({"svg.hashsalt": name}),
+                speaking(language, without_title=headless),
+            ):
                 figure = draw(used)
                 try:
+                    localize_ticks(figure, language or "en")
+                    check_text(figure)
                     paths.extend(
-                        save(figure, path_for(directory, name, theme, output), output)
+                        save(figure, path_for(directory, name, theme, output, language), output)
                         for output in group
                     )
                 except ValueError as error:
