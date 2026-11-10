@@ -168,7 +168,10 @@ def test_log_scale_labels_use_the_bundled_fonts(
         ax.set_yscale("log")
         return figure
 
-    figkit.render(tmp_path, "log", log_chart, outputs=(figkit.SVG,), themes=(figkit.LIGHT,))
+    # Hide the system fonts behind the generic families, as on a bare Linux runner.
+    missing = ["No Such Font"]
+    with plt.rc_context({"font.serif": missing, "font.cursive": missing, "font.fantasy": missing}):
+        figkit.render(tmp_path, "log", log_chart, outputs=(figkit.SVG,), themes=(figkit.LIGHT,))
 
     assert not [r for r in caplog.records if "findfont" in r.getMessage()]
 

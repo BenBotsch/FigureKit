@@ -146,10 +146,16 @@ def rc(theme: Theme) -> dict[str, Any]:
         "font.monospace": [mono],
         "font.size": size["size"],
         "mathtext.fontset": "custom",
+        # Mathtext loads every face of the custom set for each label, log ticks too. Faces left
+        # at their defaults fall back to generic families such as cursive, which a bare Linux
+        # system lacks, so all of them point to the bundled fonts. The bundle has semibold.
         "mathtext.rm": sans,
-        # Mathtext loads its bold faces for every label, log ticks too; the bundle has semibold.
+        "mathtext.it": f"{sans}:italic",
         "mathtext.bf": f"{sans}:semibold",
         "mathtext.bfit": f"{sans}:italic:semibold",
+        "mathtext.sf": sans,
+        "mathtext.tt": mono,
+        "mathtext.cal": sans,
         "lines.linewidth": 2,
         "lines.markersize": 6,
         "lines.solid_capstyle": "round",
