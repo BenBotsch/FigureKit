@@ -2,14 +2,15 @@ import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 from matplotlib.figure import Figure
 from PIL import Image
 
 import figkit
-from figkit.check import check
+from figkit.check import BUDGET, PHOTO_PNG_BUDGET, check
 from figkit.cli import main
-from figkit.export import PAD
+from figkit.export import PAD, palette
 from figkit.theme import FONTS
 
 
@@ -129,6 +130,39 @@ def test_photo_output_writes_transparent_webp(tmp_path: Path) -> None:
     paths = figkit.render(tmp_path, "photo", chart, outputs=figkit.PHOTO)
 
     assert {p.suffix for p in paths} == {".webp", ".png"}
+    assert check(tmp_path) == []
+
+
+def test_png_palette_keeps_the_tones_of_a_photograph_and_its_soft_edges() -> None:
+    # A grey ramp on an empty background with an anti-aliased border, like an image in a figure.
+    ramp = np.tile(np.linspace(0, 255, 512).round().astype(np.uint8), (64, 1))
+    rgba = np.zeros((80, 528, 4), dtype=np.uint8)
+    rgba[8:72, 8:520, :3] = ramp[..., None]
+    rgba[8:72, 8:520, 3] = 255
+    rgba[7, 8:520] = (30, 30, 30, 96)
+
+    result = np.asarray(palette(Image.fromarray(rgba, "RGBA")).convert("RGBA")).astype(int)
+
+    inside = result[8:72, 8:520]
+    assert np.abs(inside[..., :3] - rgba[8:72, 8:520, :3]).max() <= 4
+    assert len(np.unique(inside[..., 0])) >= 200
+    assert abs(result[7, 100, 3] - 96) <= 8
+    assert result[0, 0, 3] == 0
+
+
+def test_check_allows_a_larger_png_next_to_a_photo(tmp_path: Path) -> None:
+    for suffix in ("", "-dark"):
+        noise = np.random.default_rng(0).integers(0, 255, (300, 400, 4), dtype=np.uint8)
+        noise[..., 3] = 255
+        noise[0, 0, 3] = noise[-1, -1, 3] = noise[0, -1, 3] = noise[-1, 0, 3] = 0
+        Image.fromarray(noise, "RGBA").save(tmp_path / f"photo{suffix}.png")
+    size = (tmp_path / "photo.png").stat().st_size
+    assert BUDGET[".png"] < size < PHOTO_PNG_BUDGET
+
+    assert any("budget" in p for p in check(tmp_path))
+    for suffix in ("", "-dark"):
+        with Image.open(tmp_path / f"photo{suffix}.png") as image:
+            image.save(tmp_path / f"photo{suffix}.webp", quality=50)
     assert check(tmp_path) == []
 
 

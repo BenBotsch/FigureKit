@@ -9,6 +9,8 @@ from PIL import Image
 FORMATS = (".svg", ".png", ".webp")
 # Bytes. Above these, a chart usually embeds a raster or far too many points.
 BUDGET = {".svg": 150_000, ".png": 250_000, ".webp": 250_000}
+# A PNG next to a WebP of the same name is the lossless copy of a photograph, which is larger.
+PHOTO_PNG_BUDGET = 500_000
 # The figure background is the first patch matplotlib writes into an SVG.
 _BACKGROUND = re.compile(r'<g id="patch_1">\s*<path[^>]*style="([^"]*)"')
 
@@ -38,9 +40,11 @@ def check(directory: Path, opaque: Iterable[str] = ("card",)) -> list[str]:
         )
         if partner not in names:
             problems.append(f"{path.name}: missing its pair {partner}")
-        size = path.stat().st_size
-        if size > BUDGET[path.suffix]:
-            problems.append(f"{path.name}: {size:,} bytes, budget {BUDGET[path.suffix]:,}")
+        size, budget = path.stat().st_size, BUDGET[path.suffix]
+        if path.suffix == ".png" and f"{path.stem}.webp" in names:
+            budget = PHOTO_PNG_BUDGET
+        if size > budget:
+            problems.append(f"{path.name}: {size:,} bytes, budget {budget:,}")
         if light in keep_opaque:
             continue
         problem = _svg_problem(path) if path.suffix == ".svg" else _raster_problem(path)

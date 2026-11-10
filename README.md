@@ -20,7 +20,7 @@ and writes them as transparent SVG and PNG, ready for a README, the portfolio an
 ## Install
 
 ```sh
-uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.1.0"
+uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.1.1"
 ```
 
 Pin a tag, so a style change reaches a project only when it updates the tag.

@@ -67,11 +67,15 @@ secondary at least 4.5:1 and muted at least 3:1.
 card.png          1200 x 630 social preview, opaque (CARD output)
 ```
 
-Photographs and images with overlays use `PHOTO` (WebP and PNG) instead of SVG. Generated
-figures are never edited by hand. Each project has one command that writes all of them.
+Photographs and images with overlays use `PHOTO` (WebP and PNG) instead of SVG. The WebP is the
+file for web pages; the PNG is a lossless copy for slides and documents. Every PNG is stored with a
+palette of 256 colours and alpha: the opaque pixels get a median-cut palette, which keeps the tones
+of a photograph without contour lines, and only the anti-aliased edges share the remaining entries.
+Generated figures are never edited by hand. Each project has one command that writes all of them.
 
 `figkit check <directory>` fails CI when a file has no pair, when a figure that should be
-transparent is opaque, or when a file exceeds its budget (SVG 150 KB, PNG and WebP 250 KB).
+transparent is opaque, or when a file exceeds its budget: SVG 150 KB, PNG and WebP 250 KB, and
+500 KB for a PNG next to a WebP of the same name, the copy of a photograph.
 
 ## 5. Embedding
 

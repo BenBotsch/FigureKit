@@ -188,10 +188,11 @@ wheels = [
 
 [[package]]
 name = "figkit"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "numpy" },
     { name = "pillow" },
 ]
 
@@ -207,6 +208,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.9" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "pillow", specifier = ">=10.4" },
 ]
 

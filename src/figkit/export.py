@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.figure import Figure
 from PIL import Image
 
@@ -105,10 +106,67 @@ def _write_raster(image: Image.Image, path: Path, output: Output) -> None:
     if output.format == "webp":
         rgba.save(path, format="webp", quality=88, method=6)
         return
-    # Flat charts survive a 256-colour palette with alpha, which makes the PNG several times
-    # smaller; Pillow writes no date or version into it.
-    palette = rgba.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-    palette.save(path, format="png", optimize=True)
+    # A 256-colour palette with alpha makes the PNG several times smaller; Pillow writes no date
+    # or version into it.
+    palette(rgba).save(path, format="png", optimize=True)
+
+
+# Palette entries of fully opaque pixels; the rest hold the semi-transparent edges of text and lines
+# and, in the last entry, the empty background.
+_SOLID = 224
+_CLEAR = 255
+
+
+def palette(rgba: Image.Image) -> Image.Image:
+    """The image in at most 256 colours with alpha, without visible banding in photographs.
+
+    Pillow's only RGBA quantiser, the fast octree, keeps a few dozen greys of a photograph, which
+    shows as contour lines. So the opaque pixels get a median-cut palette of their own, and only
+    the semi-transparent pixels, the anti-aliased edges on the empty background, use the octree.
+    """
+    data = np.asarray(rgba.convert("RGBA"))
+    alpha = data[..., 3]
+    solid = alpha == 255
+    edges = (alpha > 0) & ~solid
+    index = np.full(alpha.shape, _CLEAR, dtype=np.uint8)
+    colours: list[int] = []
+    alphas: list[int] = []
+    if solid.any():
+        # The other pixels take the colour of an opaque one, so they use no palette entries.
+        # Quantising the image itself keeps full precision; mapping it onto a given palette
+        # would round to 6 bits per channel.
+        rgb = data[..., :3].copy()
+        rgb[~solid] = data[..., :3][solid][0]
+        solid_palette = Image.fromarray(rgb).quantize(
+            _SOLID, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE
+        )
+        index[solid] = np.asarray(solid_palette)[solid]
+        colours = _entries(solid_palette.getpalette() or [], 3, _SOLID)
+        alphas = [255] * _SOLID
+    offset = len(alphas)
+    free = _CLEAR - offset
+    if edges.any():
+        sample = Image.fromarray(np.ascontiguousarray(data[edges].reshape(-1, 1, 4)), "RGBA")
+        edge_palette = sample.quantize(
+            free, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE
+        )
+        index[edges] = offset + np.asarray(edge_palette).reshape(-1)
+        rgba_entries = _entries(edge_palette.getpalette(rawmode="RGBA") or [], 4, free)
+        for i in range(free):
+            colours += rgba_entries[4 * i : 4 * i + 3]
+            alphas.append(rgba_entries[4 * i + 3])
+    colours += [0] * (3 * _CLEAR - len(colours)) + [0, 0, 0]
+    alphas += [0] * (_CLEAR - len(alphas)) + [0]
+    result = Image.fromarray(index, "P")
+    result.putpalette(colours)
+    result.info["transparency"] = bytes(alphas)
+    return result
+
+
+def _entries(values: list[int], channels: int, count: int) -> list[int]:
+    """The first ``count`` palette entries, padded with zeros."""
+    values = values[: channels * count]
+    return values + [0] * (channels * count - len(values))
 
 
 def render(
