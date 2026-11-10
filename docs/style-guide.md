@@ -83,7 +83,7 @@ Generated figures are never edited by hand. Each project has one command that wr
 `figkit check <directory>` fails CI when a file has no pair, when a figure that should be
 transparent is opaque, when a web file is not on the 6.4 in canvas (460.8 pt as SVG, 1600 px as
 PNG; `--any-width` turns this off), or when a file exceeds its budget: SVG 150 KB, PNG and WebP 250 KB, and
-750 KB for a PNG next to a WebP of the same name, the copy of a photograph.
+1 MB for a PNG next to a WebP of the same name, the copy of a photograph.
 
 ## 5. Embedding
 
