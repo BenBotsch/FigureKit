@@ -147,6 +147,9 @@ def rc(theme: Theme) -> dict[str, Any]:
         "font.size": size["size"],
         "mathtext.fontset": "custom",
         "mathtext.rm": sans,
+        # Mathtext loads its bold faces for every label, log ticks too; the bundle has semibold.
+        "mathtext.bf": f"{sans}:semibold",
+        "mathtext.bfit": f"{sans}:italic:semibold",
         "lines.linewidth": 2,
         "lines.markersize": 6,
         "lines.solid_capstyle": "round",

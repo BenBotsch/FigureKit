@@ -10,7 +10,7 @@ FORMATS = (".svg", ".png", ".webp")
 # Bytes. Above these, a chart usually embeds a raster or far too many points.
 BUDGET = {".svg": 150_000, ".png": 250_000, ".webp": 250_000}
 # A PNG next to a WebP of the same name is the lossless copy of a photograph, which is larger.
-PHOTO_PNG_BUDGET = 500_000
+PHOTO_PNG_BUDGET = 750_000
 # The figure background is the first patch matplotlib writes into an SVG.
 _BACKGROUND = re.compile(r'<g id="patch_1">\s*<path[^>]*style="([^"]*)"')
 

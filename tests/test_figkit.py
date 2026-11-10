@@ -150,6 +150,20 @@ def test_png_palette_keeps_the_tones_of_a_photograph_and_its_soft_edges() -> Non
     assert result[0, 0, 3] == 0
 
 
+def test_log_scale_labels_use_the_bundled_fonts(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    def log_chart(theme: figkit.Theme) -> Figure:
+        figure, ax = plt.subplots(figsize=(4, 3))
+        ax.plot([1, 2, 3], [1e-3, 1e-2, 1e-1], color=theme.series[0])
+        ax.set_yscale("log")
+        return figure
+
+    figkit.render(tmp_path, "log", log_chart, outputs=(figkit.SVG,), themes=(figkit.LIGHT,))
+
+    assert not [r for r in caplog.records if "findfont" in r.getMessage()]
+
+
 def test_check_allows_a_larger_png_next_to_a_photo(tmp_path: Path) -> None:
     for suffix in ("", "-dark"):
         noise = np.random.default_rng(0).integers(0, 255, (300, 400, 4), dtype=np.uint8)
