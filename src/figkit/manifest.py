@@ -74,11 +74,30 @@ def page(
     Returns:
         The entry of the figure for :func:`write`.
     """
-    files: dict[str, dict[str, Any]] = {}
     for language in captions:
         render(directory, name, partial(draw, language), outputs, language=language, headless=True)
-        light = path_for(directory, name, LIGHT, outputs[0], language)
-        dark = path_for(directory, name, DARK, outputs[0], language)
+    return entry(directory, name, captions, outputs[0])
+
+
+def entry(
+    directory: Path, name: str, captions: Mapping[str, Caption], output: Output = SVG
+) -> dict[str, Any]:
+    """The entry of ``name`` for :func:`write`, from files that :func:`page` wrote earlier.
+
+    For a figure whose drawing needs more than the others, such as a trained model, so that a
+    separate step writes it: the manifest of all figures can still be written in one place.
+
+    Raises:
+        FileNotFoundError: If a file of a language in ``captions`` is missing.
+    """
+    files: dict[str, dict[str, Any]] = {}
+    for language in captions:
+        light = path_for(directory, name, LIGHT, output, language)
+        dark = path_for(directory, name, DARK, output, language)
+        for path in (light, dark):
+            if not path.is_file():
+                msg = f"{path.name} is missing; write the figure with page() first"
+                raise FileNotFoundError(msg)
         width, height = size(light)
         files[language] = {
             "light": light.name,

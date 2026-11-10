@@ -52,6 +52,7 @@ from figkit.helpers import (
 )
 from figkit.language import headless, language, localize, number
 from figkit.manifest import Caption, page
+from figkit.manifest import entry as page_entry
 from figkit.manifest import write as write_manifest
 from figkit.theme import DARK, LIGHT, THEMES, Theme, rc, register_fonts, styled, tokens
 
@@ -87,6 +88,7 @@ __all__ = [
     "mono_ticks",
     "number",
     "page",
+    "page_entry",
     "path_for",
     "percent",
     "rc",

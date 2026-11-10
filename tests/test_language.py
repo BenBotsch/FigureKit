@@ -117,6 +117,14 @@ def test_page_and_manifest_describe_every_file(tmp_path: Path) -> None:
     assert check(tmp_path) == []
 
 
+def test_page_entry_describes_files_written_earlier(tmp_path: Path) -> None:
+    written = figkit.page(tmp_path, "bars", chart, CAPTIONS)
+
+    assert figkit.page_entry(tmp_path, "bars", CAPTIONS) == written
+    with pytest.raises(FileNotFoundError, match=r"lines\.en\.svg is missing"):
+        figkit.page_entry(tmp_path, "lines", CAPTIONS)
+
+
 def test_check_reports_a_missing_language_and_alt_text(tmp_path: Path) -> None:
     figkit.write_manifest(tmp_path, [figkit.page(tmp_path, "bars", chart, CAPTIONS)])
     path = tmp_path / "figures.json"
