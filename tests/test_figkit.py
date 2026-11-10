@@ -173,3 +173,12 @@ def test_ink_on_picks_readable_text_for_a_fill() -> None:
     assert figkit.ink_on("#ffffff") == figkit.LIGHT.ink
     assert figkit.ink_on(figkit.LIGHT.ramp[-1]) == "#ffffff"
     assert figkit.hex_colour((1.0, 0.5, 0.0, 1.0)) == "#ff8000"
+
+
+def test_reference_line_label_can_sit_left_of_a_vertical_line() -> None:
+    figure, ax = plt.subplots()
+    right = figkit.reference_line(ax, 0.5, "limit", figkit.LIGHT)
+    left = figkit.reference_line(ax, 0.9, "limit", figkit.LIGHT, side="left")
+    assert (right.get_horizontalalignment(), right.get_text()) == ("left", " limit")
+    assert (left.get_horizontalalignment(), left.get_text()) == ("right", "limit ")
+    plt.close(figure)

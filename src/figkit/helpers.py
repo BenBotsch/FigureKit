@@ -135,11 +135,12 @@ def reference_line(
     axis: Axis = "x",
     colour: str | None = None,
     where: float = 1.0,
+    side: Literal["left", "right"] = "right",
 ) -> Text:
     """A thin line at a fixed value (threshold, chance level, alert limit) with its label.
 
-    ``where`` is the position of the label along the line in axes coordinates; the label sits on
-    the right of a vertical line and above a horizontal one.
+    ``where`` is the position of the label along the line in axes coordinates. The label sits
+    above a horizontal line, and on ``side`` of a vertical one; use ``left`` near the right edge.
     """
     line_colour = colour or theme.muted
     small = {"fontsize": tokens()["font"]["annotation"], "color": theme.secondary}
@@ -148,9 +149,9 @@ def reference_line(
         return ax.text(
             position,
             where,
-            f" {label}",
+            f" {label}" if side == "right" else f"{label} ",
             transform=ax.get_xaxis_transform(),
-            ha="left",
+            ha="left" if side == "right" else "right",
             va="top",
             **small,
         )
