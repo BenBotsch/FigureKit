@@ -21,18 +21,21 @@ OUT = Path(__file__).resolve().parents[1] / "docs" / "examples"
 def lines(theme: Theme) -> Figure:
     """Validation score of three models over the epochs."""
     epochs = np.arange(1, 21)
-    figure, ax = plt.subplots(figsize=(6.4, 3.4))
+    figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 3.4))
+    ends = []
     for slot, (name, end, speed) in enumerate(
         (("ResNet18", 0.97, 3.0), ("HOG + SVM", 0.86, 6.0), ("MobileNet", 0.93, 4.0))
     ):
         score = end - (end - 0.35) * np.exp(-(epochs - 1) / speed)
         ax.plot(epochs, score, color=theme.series[slot], label=name)
-        figkit.value(ax, 20.4, score[-1], f"{score[-1]:.2f}", theme, va="center")
+        ends.append((20.0, float(score[-1]), f"{name} {score[-1]:.2f}"))
     figkit.title(ax, "Validation macro F1", theme)
     figkit.legend_top(ax)
     figkit.grid(ax, "y")
+    figkit.line_labels(ax, ends, theme)
     ax.set_xlabel("epoch")
-    ax.set_xlim(1, 21.5)
+    ax.set_xlim(1, 20)
+    ax.set_xticks([1, 5, 10, 15, 20])
     ax.set_ylim(0.3, 1.0)
     return figure
 
@@ -41,7 +44,7 @@ def bars(theme: Theme) -> Figure:
     """Recall per class with a target line."""
     names = ["crazing", "inclusion", "patches", "pitted surface", "rolled-in scale", "scratches"]
     recall = [0.93, 0.81, 0.99, 0.88, 0.74, 0.96]
-    figure, ax = plt.subplots(figsize=(6.4, 3.2))
+    figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 3.2))
     y = np.arange(len(names))
     container = ax.barh(y, recall, height=0.56, color=theme.series[0])
     figkit.bar_labels(ax, container, theme, fmt="{:.0%}")

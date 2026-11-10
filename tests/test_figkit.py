@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib.figure import Figure
+from matplotlib.text import Annotation
 from PIL import Image
 
 import figkit
 from figkit.check import BUDGET, PHOTO_PNG_BUDGET, check
 from figkit.cli import main
-from figkit.export import PAD, palette
+from figkit.export import palette
 from figkit.theme import FONTS
 
 
@@ -97,26 +98,65 @@ def test_svg_files_end_lines_with_lf_on_every_platform(tmp_path: Path) -> None:
         assert b"\r\n" not in data
 
 
-def test_png_width_follows_the_figure_width(tmp_path: Path) -> None:
-    figkit.render(tmp_path, "wide", chart, outputs=(figkit.PNG,))
-    figkit.render(tmp_path, "narrow", narrow, outputs=(figkit.PNG,))
-
-    with Image.open(tmp_path / "wide.png") as wide, Image.open(tmp_path / "narrow.png") as small:
-        # Cropped to the drawn content, so at most the full web width plus the margin.
-        assert wide.width <= (figkit.WEB_WIDTH + 2 * PAD) * figkit.RASTER_DPI
-        # Same text size in pixels, so a narrower figure gives a narrower image.
-        assert small.width < wide.width * 0.6
-
-
-def test_wider_figures_are_scaled_down_to_the_web_width(tmp_path: Path) -> None:
+def test_every_web_file_has_the_canvas_width(tmp_path: Path) -> None:
     def huge(theme: figkit.Theme) -> Figure:
-        return chart(theme, width=12)
+        figure = chart(theme, width=12)
+        figure.axes[0].set_ylabel("a label long enough to stick out of the figure on the left")
+        return figure
 
-    figkit.render(tmp_path, "huge", huge, outputs=(figkit.SVG,))
+    for name, draw in (("wide", chart), ("narrow", narrow), ("huge", huge)):
+        figkit.render(tmp_path, name, draw)
+        svg = (tmp_path / f"{name}.svg").read_text("utf-8")
+        width = re.search(r'<svg[^>]* width="([\d.]+)pt"', svg)
+        assert width is not None
+        assert float(width.group(1)) == pytest.approx(figkit.WEB_WIDTH * 72)
+        with Image.open(tmp_path / f"{name}.png") as image:
+            assert image.width == figkit.WEB_WIDTH * figkit.RASTER_DPI
+    assert check(tmp_path) == []
 
-    width = re.search(r'<svg[^>]* width="([\d.]+)pt"', (tmp_path / "huge.svg").read_text("utf-8"))
-    assert width is not None
-    assert float(width.group(1)) <= figkit.WEB_WIDTH * 72
+
+def test_canvas_rejects_content_that_cannot_fit() -> None:
+    figure = plt.figure(figsize=(6.4, 2))
+    figure.text(0, 0.5, "a fixed text that is far wider than the canvas " * 3)
+
+    with pytest.raises(ValueError, match="does not fit"):
+        figkit.canvas(figure, figkit.WEB_WIDTH)
+    plt.close(figure)
+
+
+def test_render_names_the_figure_that_does_not_fit(tmp_path: Path) -> None:
+    def wide(theme: figkit.Theme) -> Figure:
+        figure = plt.figure(figsize=(6.4, 2))
+        figure.text(0, 0.5, "a fixed text that is far wider than the canvas " * 3)
+        return figure
+
+    with pytest.raises(ValueError, match="does not fit") as error:
+        figkit.render(tmp_path, "wide", wide, outputs=(figkit.SVG,))
+    assert "while writing figure 'wide' in the light theme" in error.value.__notes__
+
+
+def test_check_reports_a_figure_off_the_canvas(tmp_path: Path) -> None:
+    free = figkit.Output("svg")
+    figkit.render(tmp_path, "free", narrow, outputs=(free,))
+
+    assert any("pt wide, the canvas is 460.8 pt" in p for p in check(tmp_path))
+    assert check(tmp_path, width=None) == []
+
+
+def test_line_labels_do_not_overlap() -> None:
+    figure, ax = plt.subplots(figsize=(4, 3))
+    ax.set_ylim(0, 1)
+    labels = figkit.line_labels(ax, [(1, 0.50, "a"), (1, 0.51, "b"), (1, 0.9, "c")], figkit.LIGHT)
+
+    def height(label: Annotation) -> float:
+        return float(ax.transData.transform(label.xy)[1]) * 72 / figure.dpi + label.xyann[1]
+
+    a, b = (height(label) for label in labels[:2])
+    gap = figkit.tokens()["font"]["annotation"] * 1.35
+    assert b - a == pytest.approx(gap)
+    assert labels[2].xyann[1] == 0  # far enough away to stay at its line end
+    assert {label.get_color() for label in labels} == {figkit.LIGHT.secondary}
+    plt.close(figure)
 
 
 def test_card_is_opaque_and_exactly_1200_by_630(tmp_path: Path) -> None:
@@ -185,11 +225,11 @@ def test_check_allows_a_larger_png_next_to_a_photo(tmp_path: Path) -> None:
     size = (tmp_path / "photo.png").stat().st_size
     assert BUDGET[".png"] < size < PHOTO_PNG_BUDGET
 
-    assert any("budget" in p for p in check(tmp_path))
+    assert any("budget" in p for p in check(tmp_path, width=None))
     for suffix in ("", "-dark"):
         with Image.open(tmp_path / f"photo{suffix}.png") as image:
             image.save(tmp_path / f"photo{suffix}.webp", quality=50)
-    assert check(tmp_path) == []
+    assert check(tmp_path, width=None) == []
 
 
 def test_check_reports_missing_pairs_and_opaque_backgrounds(tmp_path: Path) -> None:

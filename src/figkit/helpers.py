@@ -165,3 +165,69 @@ def reference_line(
         va="bottom",
         **small,
     )
+
+
+def line_labels(
+    ax: Axes,
+    items: Sequence[tuple[float, float, str]],
+    theme: Theme,
+    *,
+    offset: float = 5,
+) -> list[Annotation]:
+    """Names at the ends of lines, pushed apart vertically so that they do not overlap.
+
+    Direct labels make a legend unnecessary and carry the identity of series whose colour has
+    little contrast against the page. The text is in the secondary ink; the line next to it
+    carries the colour. Call this after the limits and the figure size are final.
+
+    Args:
+        ax: Axes of the lines.
+        items: ``(x, y, text)`` of each line end, in data coordinates.
+        theme: Theme of the figure.
+        offset: Distance from the line end to the text, in points.
+    """
+    size = tokens()["font"]["annotation"]
+    spacing = size * 1.35
+    figure = ax.get_figure()
+    dpi = figure.dpi if figure is not None else 72
+    wanted = [float(ax.transData.transform((x, y))[1]) * 72 / dpi for x, y, _ in items]
+    placed = _spread(wanted, spacing)
+    return [
+        ax.annotate(
+            text,
+            xy=(x, y),
+            xytext=(offset, placed[i] - wanted[i]),
+            textcoords="offset points",
+            ha="left",
+            va="center",
+            fontsize=size,
+            color=theme.secondary,
+            annotation_clip=False,
+        )
+        for i, (x, y, text) in enumerate(items)
+    ]
+
+
+def _spread(wanted: Sequence[float], spacing: float) -> list[float]:
+    """Positions at least ``spacing`` apart, each group of crowded labels centred on its targets."""
+    order = sorted(range(len(wanted)), key=lambda i: wanted[i])
+    groups: list[list[int]] = []
+    for i in order:
+        groups.append([i])
+        # Merge with the group below while the two overlap, and centre the merged group again.
+        while len(groups) > 1:
+            low, high = groups[-2], groups[-1]
+            if _start(low, wanted, spacing) + len(low) * spacing <= _start(high, wanted, spacing):
+                break
+            groups[-2:] = [low + high]
+    placed = [0.0] * len(wanted)
+    for group in groups:
+        start = _start(group, wanted, spacing)
+        for k, i in enumerate(group):
+            placed[i] = start + k * spacing
+    return placed
+
+
+def _start(group: Sequence[int], wanted: Sequence[float], spacing: float) -> float:
+    centre = sum(wanted[i] for i in group) / len(group)
+    return centre - (len(group) - 1) * spacing / 2

@@ -20,7 +20,7 @@ and writes them as transparent SVG and PNG, ready for a README, the portfolio an
 ## Install
 
 ```sh
-uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.1.1"
+uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.1.2"
 ```
 
 Pin a tag, so a style change reaches a project only when it updates the tag.
@@ -37,7 +37,7 @@ import figkit
 
 
 def recall(theme: figkit.Theme) -> plt.Figure:
-    figure, ax = plt.subplots(figsize=(6.4, 3.2))
+    figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 3.2))
     bars = ax.barh(["crazing", "inclusion", "patches"], [0.93, 0.81, 0.99], color=theme.series[0])
     figkit.bar_labels(ax, bars, theme, fmt="{:.0%}")
     figkit.reference_line(ax, 0.8, "target 80 %", theme)
@@ -53,12 +53,13 @@ figkit.render(Path("docs/figures"), "recall", recall)
 
 | Output | Files |
 | --- | --- |
-| `WEB` (default) | transparent SVG and PNG at 250 dpi |
+| `WEB` (default) | transparent SVG and PNG on a 6.4 in canvas, the PNG 1600 px wide |
 | `PHOTO` | transparent WebP and PNG, for images and overlays |
 | `CARD` | opaque 1200 x 630 PNG for Open Graph; draw on `CARD_INCHES` |
 
 Helpers: `title`, `legend_top`, `grid`, `percent`, `category_axis`, `mono_ticks`, `value`,
-`bar_labels`, `reference_line`, `ink_on`, `hex_colour`. `figkit.styled(theme)` applies the
+`bar_labels`, `reference_line`, `line_labels`, `ink_on`, `hex_colour`. `canvas` returns the
+fixed box that `render` crops to. `figkit.styled(theme)` applies the
 style without writing files, for example in a notebook.
 
 In CI:

@@ -52,8 +52,15 @@ secondary at least 4.5:1 and muted at least 3:1.
 - The title sits at the top left (`figkit.title`), with an optional subtitle underneath. The legend
   sits at the top right on the line of the title (`figkit.legend_top`). A figure with a subtitle
   puts its legend inside the axes instead.
-- Draw a full-width figure 6.4 in wide. Shown in a column of 800 CSS px, 9 pt text then comes out at
-  about 15 px. Wider figures are scaled down to 6.4 in, narrower ones keep their size.
+- Every web file has the same canvas, 6.4 in wide. Shown in a column of 800 CSS px, 9 pt text then
+  comes out at about 15 px in every figure, and all titles start at the same left edge. A drawing
+  that sticks out is narrowed until it fits, a smaller one leaves space on the right. Text keeps
+  its size, so a fixed text wider than the canvas, such as a very long subtitle, is an error that
+  names the figure. Draw with `figsize=(figkit.WEB_WIDTH, height)`.
+- Boxes and tiles in diagrams are a light tint of their colour, without an edge or a coloured
+  stripe. Large numbers in them use the text face, semibold.
+- Lines with two or more series are labelled at their right end with `figkit.line_labels`, in
+  addition to the legend. Labels that would overlap are moved apart.
 - Use a grid on one axis only, as hairlines. Category axes have no spine and no tick marks.
 - Lines are 2 px wide. Markers are at least 6 pt, and only where points matter.
 
@@ -62,7 +69,7 @@ secondary at least 4.5:1 and muted at least 3:1.
 ```text
 <name>.svg        light page, transparent, for the web
 <name>-dark.svg   dark page, transparent
-<name>.png        light page, transparent, 250 dpi (about 1600 px at full width)
+<name>.png        light page, transparent, 250 dpi and 1600 px wide
 <name>-dark.png   dark page, transparent
 card.png          1200 x 630 social preview, opaque (CARD output)
 ```
@@ -74,7 +81,8 @@ of a photograph without contour lines, and only the anti-aliased edges share the
 Generated figures are never edited by hand. Each project has one command that writes all of them.
 
 `figkit check <directory>` fails CI when a file has no pair, when a figure that should be
-transparent is opaque, or when a file exceeds its budget: SVG 150 KB, PNG and WebP 250 KB, and
+transparent is opaque, when a web file is not on the 6.4 in canvas (460.8 pt as SVG, 1600 px as
+PNG; `--any-width` turns this off), or when a file exceeds its budget: SVG 150 KB, PNG and WebP 250 KB, and
 750 KB for a PNG next to a WebP of the same name, the copy of a photograph.
 
 ## 5. Embedding

@@ -3,8 +3,11 @@
 Every figure exists for a light and a dark page. The light file is ``<name>.<format>`` and the dark
 one ``<name>-dark.<format>``, the convention of the portfolio's ``Figure`` component and of
 ``<picture>`` in a README. The default output :data:`WEB` writes a transparent SVG and a
-transparent 250 dpi PNG of each (about 1600 px at full width), so the same file sits on any page
-colour of its mode.
+transparent 250 dpi PNG of each, so the same file sits on any page colour of its mode.
+
+Web outputs have a fixed canvas: every file is exactly 6.4 in wide, 1600 px as PNG. Pages scale
+images to their column, so equal widths give the same text size in every figure, and titles start
+at the same left edge. A narrower drawing leaves empty space on the right.
 """
 
 import io
@@ -17,6 +20,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.transforms import Bbox
 from PIL import Image
 
 from figkit.theme import THEMES, Theme, styled
@@ -31,8 +35,9 @@ class Output:
     Attributes:
         format: ``svg``, ``png`` or ``webp``.
         transparent: Leave the background empty instead of filling it with the theme surface.
-        width: Largest figure width in inches. A wider figure is scaled down to it, which makes
-            its text larger relative to the figure.
+        width: Width of the canvas in inches. With ``tight``, the file is exactly this wide: a
+            drawing that sticks out is narrowed until it fits, a smaller one is padded on the
+            right. Without ``tight``, a wider figure is scaled down to it.
         pixels: Width of a raster image in pixels; without it, ``dpi`` decides.
         dpi: Resolution of raster formats when ``pixels`` is not set.
         tight: Crop to the drawn content plus a small margin. Off for fixed sizes such as a
@@ -47,9 +52,9 @@ class Output:
     tight: bool = True
 
 
-# 6.4 inches shown in a column of 800 CSS pixels enlarge 9 pt text to about 15 px. Raster copies
-# use one resolution for every figure, so a full-width figure is about 1600 pixels wide, sharp at
-# twice that column, and a narrower figure keeps the same text size instead of being stretched.
+# 6.4 inches shown in a column of 800 CSS pixels enlarge 9 pt text to about 15 px. Every web file
+# has this width, so the text has this size in every figure; at 250 dpi a PNG is 1600 pixels wide,
+# sharp at twice that column.
 WEB_WIDTH = 6.4
 RASTER_DPI = 250
 SVG = Output("svg", width=WEB_WIDTH)
@@ -78,29 +83,64 @@ def save(figure: Figure, path: Path, output: Output) -> Path:
     """Write the figure to ``path`` in the given output; the figure stays open."""
     path.parent.mkdir(parents=True, exist_ok=True)
     width, height = figure.get_size_inches()
-    if output.width is not None and width > output.width:
+    bbox: Bbox | str | None = None
+    if output.tight and output.width is not None:
+        bbox = canvas(figure, output.width)
+    elif output.width is not None and width > output.width:
         figure.set_size_inches(output.width, height * output.width / width)
+    if output.tight and bbox is None:
+        bbox = "tight"
     dpi = output.dpi
     if output.pixels is not None:
-        figure.draw_without_rendering()
-        drawn = figure.get_tightbbox().width + 2 * PAD if output.tight else figure.get_figwidth()
+        if isinstance(bbox, Bbox):
+            drawn = bbox.width
+        elif bbox == "tight":
+            figure.draw_without_rendering()
+            drawn = figure.get_tightbbox().width + 2 * PAD
+        else:
+            drawn = figure.get_figwidth()
         dpi = output.pixels / drawn
-    tight: dict[str, Any] = {"bbox_inches": "tight", "pad_inches": PAD} if output.tight else {}
+    options: dict[str, Any] = {"bbox_inches": bbox, "pad_inches": PAD} if bbox is not None else {}
     if output.format == "svg":
         # Saving to a path opens the file in text mode, which writes CRLF on Windows. A binary
         # buffer keeps LF, so the files are byte-identical on every platform.
         svg = io.BytesIO()
         figure.savefig(
-            svg, format="svg", transparent=output.transparent, **tight, **_SAVE_OPTIONS["svg"]
+            svg, format="svg", transparent=output.transparent, **options, **_SAVE_OPTIONS["svg"]
         )
         path.write_bytes(svg.getvalue())
         return path
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="png", dpi=dpi, transparent=output.transparent, **tight)
+    figure.savefig(buffer, format="png", dpi=dpi, transparent=output.transparent, **options)
     buffer.seek(0)
     with Image.open(buffer) as image:
         _write_raster(image, path, output)
     return path
+
+
+def canvas(figure: Figure, width: float, pad: float = PAD) -> Bbox:
+    """Box of exactly ``width`` inches around the drawn content, starting at its left edge.
+
+    Text keeps its size when the figure gets narrower, so a drawing that sticks out is narrowed
+    by the excess and measured again, a few times until it fits. The height follows the content.
+
+    Raises:
+        ValueError: If the content cannot be fitted, for example a fixed text wider than the canvas.
+    """
+    for _ in range(8):
+        figure.draw_without_rendering()
+        box = figure.get_tightbbox().padded(pad)
+        excess = box.width - width
+        # Up to a fortieth of an inch of the margin may be cut, the padding absorbs it.
+        if excess <= pad / 6:
+            return Bbox.from_extents(box.x0, box.y0, box.x0 + width, box.y1)
+        w, h = figure.get_size_inches()
+        if w - excess <= 1:
+            break
+        # Only the axes shrink with the figure, so step a little further than the excess.
+        figure.set_size_inches(w - 1.25 * excess, h)
+    msg = f"the drawing is {box.width:.2f} in wide and does not fit a canvas of {width} in"
+    raise ValueError(msg)
 
 
 def _write_raster(image: Image.Image, path: Path, output: Output) -> None:
@@ -202,6 +242,9 @@ def render(
                         save(figure, path_for(directory, name, theme, output), output)
                         for output in group
                     )
+                except ValueError as error:
+                    error.add_note(f"while writing figure {name!r} in the {theme.name} theme")
+                    raise
                 finally:
                     plt.close(figure)
     return paths
