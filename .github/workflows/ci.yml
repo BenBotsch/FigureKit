@@ -27,3 +27,7 @@ jobs:
       # The committed gallery must come out of the script unchanged on this platform.
       - run: uv run python scripts/examples.py
       - run: git diff --exit-code -- "docs/examples/*.svg"
+      # The wheel must hold the fonts, tokens and licences that src/ has.
+      - run: uv build
+      - run: bash scripts/check_package.sh
+        shell: bash

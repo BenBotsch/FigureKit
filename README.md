@@ -26,7 +26,9 @@ and writes them as transparent SVG and PNG, ready for a README, the portfolio an
 uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.3.0"
 ```
 
-Pin a tag, so a style change reaches a project only when it updates the tag.
+Pin a tag, so a style change reaches a project only when it updates the tag. Each
+[release](https://github.com/BenBotsch/FigureKit/releases) also attaches the wheel, and
+[CHANGELOG.md](CHANGELOG.md) lists what changed, breaking changes first.
 
 ## Use
 
@@ -118,7 +120,13 @@ uv sync
 uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 uv run python scripts/examples.py      # regenerate the gallery
 uv run --no-project --with fonttools python scripts/build_fonts.py   # rebuild the static fonts
+uv build && bash scripts/check_package.sh   # render and check figures with the built wheel
 ```
+
+A release: move the entries under `Unreleased` in [CHANGELOG.md](CHANGELOG.md) to a new version
+section, set that version in `pyproject.toml` and `uv.lock` (`uv version 0.4.0`), and push the tag
+`v0.4.0`. The release workflow checks that tag and version match, tests the wheel on Ubuntu and
+Windows and publishes the GitHub release with the notes of that section.
 
 Colours and type sizes live only in [src/figkit/tokens.json](src/figkit/tokens.json).
 
