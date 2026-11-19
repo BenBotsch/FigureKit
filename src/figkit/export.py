@@ -39,7 +39,7 @@ class Output:
         transparent: Leave the background empty instead of filling it with the theme surface.
         width: Width of the canvas in inches. With ``tight``, the file is exactly this wide: a
             drawing that sticks out is narrowed until it fits, a smaller one is padded on the
-            right. Without ``tight``, a wider figure is scaled down to it.
+            right. Without ``tight``, a wider figure is resized to this width; text keeps its size.
         pixels: Width of a raster image in pixels; without it, ``dpi`` decides.
         dpi: Resolution of raster formats when ``pixels`` is not set.
         tight: Crop to the drawn content plus a small margin. Off for fixed sizes such as a
@@ -78,9 +78,13 @@ _SAVE_OPTIONS: dict[str, dict[str, Any]] = {
 def path_for(
     directory: Path, name: str, theme: Theme, output: Output, language: str | None = None
 ) -> Path:
-    """File of one figure in one theme and format, ``<name>[.<language>][-dark].<format>``."""
+    """File of one figure in one theme and format, ``<name>[.<language>][-<theme>].<format>``.
+
+    The light theme has no suffix and the dark one ``-dark``. Any other theme gets its name as the
+    suffix, so that two custom themes never write the same file.
+    """
     stem = f"{name}.{language}" if language else name
-    suffix = "-dark" if theme.name == "dark" else ""
+    suffix = "" if theme.name == "light" else f"-{theme.name}"
     return directory / f"{stem}{suffix}.{output.format}"
 
 

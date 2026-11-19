@@ -43,6 +43,13 @@ def _light_name(path: Path) -> str:
     return path.stem.removesuffix("-dark")
 
 
+def _figure_name(path: Path) -> str:
+    """Name of the figure without theme and language, ``card`` for ``card.de-dark.png``."""
+    light = _light_name(path)
+    match = _LANGUAGE.match(light)
+    return match["name"] if match else light
+
+
 def check(
     directory: Path, opaque: Iterable[str] = ("card",), width: float | None = WEB_WIDTH
 ) -> list[str]:
@@ -50,8 +57,8 @@ def check(
 
     Args:
         directory: Folder with ``<name>.<format>`` and ``<name>-dark.<format>`` files.
-        opaque: Figure names that are deliberately opaque, such as a social card. Their width
-            is not checked either.
+        opaque: Figure names that are deliberately opaque, such as a social card, in every
+            language. Their width is not checked either.
         width: Canvas width in inches that every other figure must have, so that pages show
             all of them with the same text size; ``None`` skips the check.
 
@@ -74,7 +81,7 @@ def check(
             budget = PHOTO_PNG_BUDGET
         if size > budget:
             problems.append(f"{path.name}: {size:,} bytes, budget {budget:,}")
-        if light in keep_opaque:
+        if _figure_name(path) in keep_opaque:
             continue
         found = (
             _svg_problems(path, width) if path.suffix == ".svg" else _raster_problems(path, width)
@@ -101,33 +108,64 @@ def _language_problems(files: Iterable[Path]) -> list[str]:
 
 
 def _manifest_problems(directory: Path, names: set[str]) -> list[str]:
-    """``figures.json`` lists exactly the files of the directory, each with its texts."""
-    data = manifest.load(directory)
+    """``figures.json`` lists exactly the files of the directory, each with its texts.
+
+    The file may be edited by hand, so every part of it is checked for its type and a broken
+    part is reported instead of failing the check.
+    """
+    try:
+        data = manifest.load(directory)
+    except ValueError as error:
+        return [f"{manifest.FILE}: not valid JSON, {error}"]
     if data is None:
         return []
+    if not isinstance(data, dict):
+        return [f"{manifest.FILE}: the top level is not an object"]
+    codes = data.get("languages", [])
+    figures = data.get("figures", [])
+    if not isinstance(codes, list) or not all(isinstance(c, str) for c in codes):
+        return [f"{manifest.FILE}: languages is not a list of codes"]
+    if not isinstance(figures, list):
+        return [f"{manifest.FILE}: figures is not a list"]
     problems = []
     listed: set[str] = set()
-    codes = data.get("languages", [])
-    for entry in data.get("figures", []):
-        name = entry.get("name", "?")
-        for code in codes:
-            for key in ("title", "alt"):
-                if not str(entry.get(key, {}).get(code, "")).strip():
-                    problems.append(f"{manifest.FILE}: {name} has no {key} in {code}")
-            files = entry.get("files", {}).get(code)
-            if files is None:
-                problems.append(f"{manifest.FILE}: {name} has no files in {code}")
-                continue
-            for mode in ("light", "dark"):
-                file = files.get(mode)
-                listed.add(file)
-                if file not in names:
-                    problems.append(f"{manifest.FILE}: {name} lists {file}, which does not exist")
+    for index, entry in enumerate(figures):
+        problems += _entry_problems(entry, index, codes, names, listed)
     page_files = {n for n in names if Path(n).suffix in (".svg", ".webp")}
     problems += [
         f"{file}: not in {manifest.FILE}, so the page has no alt text for it"
         for file in sorted(page_files - listed)
     ]
+    return problems
+
+
+def _entry_problems(
+    entry: object, index: int, codes: list[str], names: set[str], listed: set[str]
+) -> list[str]:
+    """Problems of one figure in the manifest; adds the files it lists to ``listed``."""
+    if not isinstance(entry, dict):
+        return [f"{manifest.FILE}: figure {index + 1} is not an object"]
+    name = entry.get("name") or f"figure {index + 1}"
+    problems = []
+    for code in codes:
+        for key in ("title", "alt"):
+            texts = entry.get(key)
+            text = texts.get(code) if isinstance(texts, dict) else None
+            if not isinstance(text, str) or not text.strip():
+                problems.append(f"{manifest.FILE}: {name} has no {key} in {code}")
+        every = entry.get("files")
+        files = every.get(code) if isinstance(every, dict) else None
+        if not isinstance(files, dict):
+            problems.append(f"{manifest.FILE}: {name} has no files in {code}")
+            continue
+        for mode in ("light", "dark"):
+            file = files.get(mode)
+            if not isinstance(file, str):
+                problems.append(f"{manifest.FILE}: {name} has no {mode} file in {code}")
+                continue
+            listed.add(file)
+            if file not in names:
+                problems.append(f"{manifest.FILE}: {name} lists {file}, which does not exist")
     return problems
 
 

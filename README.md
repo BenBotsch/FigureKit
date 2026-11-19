@@ -23,7 +23,7 @@ and writes them as transparent SVG and PNG, ready for a README, the portfolio an
 ## Install
 
 ```sh
-uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.2.1"
+uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.3.0"
 ```
 
 Pin a tag, so a style change reaches a project only when it updates the tag.
@@ -64,7 +64,8 @@ Helpers: `title`, `legend_top`, `grid`, `percent`, `category_axis`, `mono_ticks`
 `bar_labels`, `reference_line`, `line_labels`, `ink_on`, `hex_colour`, `number`, `localize`,
 `language`. `canvas` returns the
 fixed box that `render` crops to. `figkit.styled(theme)` applies the
-style without writing files, for example in a notebook.
+style without writing files, for example in a notebook. Importing figkit leaves the matplotlib
+backend alone; a batch job that only writes files can set `MPLBACKEND=Agg`.
 
 ### Figures for a website
 
@@ -93,8 +94,9 @@ A figure that a separate step draws, because it needs a trained model for exampl
 there with `page`. `figkit.page_entry(out, name, TEXT, figkit.PHOTO[0])` then reads its entry from
 the files, so one step can still write the manifest of all figures.
 
-In German, tick labels and `figkit.number` write `0,74`, `1.500` and `74 %`; other text comes from
-the project. Text below 8 pt is an error, because pages scale the canvas down on phones.
+In German, tick labels, the values of `bar_labels` and `figkit.number` write `0,74`, `1.500` and
+`74 %`; category names and other text come from the project. Text below 8 pt is an error,
+because pages scale the canvas down on phones.
 
 In CI:
 

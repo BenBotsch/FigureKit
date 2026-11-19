@@ -1,4 +1,7 @@
 import re
+import subprocess
+import sys
+from dataclasses import replace
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -175,6 +178,18 @@ def test_card_is_opaque_and_exactly_1200_by_630(tmp_path: Path) -> None:
     assert check(tmp_path, opaque=()) != []
 
 
+def test_opaque_names_cover_every_language(tmp_path: Path) -> None:
+    def card(theme: figkit.Theme) -> Figure:
+        figure = plt.figure(figsize=figkit.CARD_INCHES)
+        figure.text(0.1, 0.5, "card")
+        return figure
+
+    for code in ("de", "en"):
+        figkit.render(tmp_path, "card", card, outputs=figkit.CARD, language=code)
+
+    assert check(tmp_path) == []
+
+
 def test_photo_output_writes_transparent_webp(tmp_path: Path) -> None:
     paths = figkit.render(tmp_path, "photo", chart, outputs=figkit.PHOTO)
 
@@ -267,6 +282,32 @@ def test_series_are_the_validated_palette() -> None:
     # Changing a colour means validating again and updating this snapshot.
     assert figkit.LIGHT.series == ("#2f5bd3", "#eb6834", "#1baf7a", "#eda100")
     assert figkit.DARK.series == ("#5b84ea", "#d95926", "#199e70", "#c98500")
+
+
+def test_themes_are_hashable_and_read_only() -> None:
+    assert {figkit.LIGHT: 1, figkit.DARK: 2}[figkit.DARK] == 2
+    with pytest.raises(TypeError):
+        figkit.LIGHT.status["good"] = "#000000"  # type: ignore[index]
+
+
+def test_custom_themes_get_their_own_files(tmp_path: Path) -> None:
+    sepia = replace(figkit.LIGHT, name="sepia")
+
+    assert figkit.path_for(tmp_path, "f", figkit.LIGHT, figkit.SVG).name == "f.svg"
+    assert figkit.path_for(tmp_path, "f", figkit.DARK, figkit.SVG).name == "f-dark.svg"
+    assert figkit.path_for(tmp_path, "f", sepia, figkit.SVG, "de").name == "f.de-sepia.svg"
+
+
+def test_import_keeps_the_matplotlib_backend() -> None:
+    code = (
+        "import matplotlib; matplotlib.use('pdf'); import figkit; print(matplotlib.get_backend())"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=True
+    )
+
+    assert result.stdout.strip() == "pdf"
 
 
 def test_ink_on_picks_readable_text_for_a_fill() -> None:

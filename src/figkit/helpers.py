@@ -10,7 +10,7 @@ from matplotlib.legend import Legend
 from matplotlib.text import Annotation, Text
 from matplotlib.ticker import PercentFormatter
 
-from figkit.language import headless
+from figkit.language import headless, localize
 from figkit.theme import Theme, tokens
 
 Axis = Literal["x", "y"]
@@ -116,9 +116,15 @@ def bar_labels(
     fmt: str = "{:.2f}",
     padding: float = 3,
 ) -> list[Annotation]:
-    """Values at the ends of bars, in mono and in the secondary ink."""
+    """Values at the ends of bars, in mono and in the secondary ink.
+
+    Values formatted with ``fmt`` follow the language of the figure, ``0,93`` in German; texts
+    passed as ``labels`` stay as given.
+    """
     texts = (
-        list(labels) if labels is not None else [fmt.format(v) for v in np.asarray(bars.datavalues)]
+        list(labels)
+        if labels is not None
+        else [localize(fmt.format(v)) for v in np.asarray(bars.datavalues)]
     )
     result: list[Annotation] = ax.bar_label(
         bars,

@@ -20,7 +20,7 @@ from typing import Any
 from matplotlib.figure import Figure
 from PIL import Image
 
-from figkit.export import RASTER_DPI, SVG, Output, path_for, render
+from figkit.export import SVG, Output, path_for, render
 from figkit.theme import DARK, LIGHT, Theme
 
 FILE = "figures.json"
@@ -47,8 +47,16 @@ class Caption:
     subtitle: str | None = None
 
 
-def size(path: Path) -> tuple[float, float]:
-    """Width and height of a figure file in points, read from the file."""
+def size(path: Path, output: Output = SVG) -> tuple[float, float]:
+    """Width and height of a figure file in points, read from the file.
+
+    An SVG states its size. A raster image has only pixels, so ``output``, the output that wrote
+    it, gives the resolution: its ``dpi``, or with ``pixels`` the fixed canvas ``width``.
+
+    Raises:
+        ValueError: If the SVG has no size in pt, or a raster output sets ``pixels`` without a
+            fixed canvas, which leaves the resolution unknown.
+    """
     if path.suffix == ".svg":
         match = _SVG_SIZE.search(path.read_text(encoding="utf-8"))
         if match is None:
@@ -56,7 +64,15 @@ def size(path: Path) -> tuple[float, float]:
             raise ValueError(msg)
         return float(match.group(1)), float(match.group(2))
     with Image.open(path) as image:
-        return image.width * 72 / RASTER_DPI, image.height * 72 / RASTER_DPI
+        width, height = image.size
+    if output.pixels is None:
+        dpi = output.dpi
+    elif output.width is not None and output.tight:
+        dpi = width / output.width
+    else:
+        msg = f"{path.name}: pixels without a fixed canvas width leave the size unknown"
+        raise ValueError(msg)
+    return width * 72 / dpi, height * 72 / dpi
 
 
 def page(
@@ -98,7 +114,7 @@ def entry(
             if not path.is_file():
                 msg = f"{path.name} is missing; write the figure with page() first"
                 raise FileNotFoundError(msg)
-        width, height = size(light)
+        width, height = size(light, output)
         files[language] = {
             "light": light.name,
             "dark": dark.name,
@@ -138,10 +154,17 @@ def write(directory: Path, entries: Sequence[Mapping[str, Any]]) -> Path:
     return path
 
 
-def load(directory: Path) -> dict[str, Any] | None:
-    """The manifest of ``directory``, or ``None`` if it has none."""
+def load(directory: Path) -> object:
+    """The parsed manifest of ``directory``, or ``None`` if it has none.
+
+    The file may be edited by hand, so the result is any JSON value; :mod:`figkit.check` checks
+    its structure.
+
+    Raises:
+        ValueError: If the file is not valid JSON.
+    """
     path = directory / FILE
     if not path.is_file():
         return None
-    data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    data: object = json.loads(path.read_text(encoding="utf-8"))
     return data

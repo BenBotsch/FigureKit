@@ -35,6 +35,8 @@ def chart(language: str, theme: figkit.Theme) -> Figure:
         ("ResNet18 INT8 on AI4I 2020", "ResNet18 INT8 on AI4I 2020"),
         ("figkit v0.1.2", "figkit v0.1.2"),
         ("$10^{-2}$", "$10^{-2}$"),
+        ("F1 is 0.95.", "F1 is 0,95."),
+        ("1,447.", "1.447."),
     ],
 )
 def test_localize_writes_german_numbers_and_leaves_names(english: str, german: str) -> None:
@@ -65,6 +67,33 @@ def test_german_tick_labels_use_a_comma_and_a_spaced_percent_sign() -> None:
     assert ax.yaxis.get_major_formatter().format_ticks([0.5]) == ["50 %"]
     assert ax.xaxis.get_major_formatter().format_ticks([0.25, 0.5]) == ["0,25", "0,50"]
     plt.close(figure)
+
+
+def test_german_ticks_leave_category_names_as_given() -> None:
+    figure, ax = plt.subplots()
+    ax.bar(["1.5 mm", "2,500 px"], [1, 2])
+    localize_ticks(figure, "de")
+    figure.canvas.draw()
+
+    assert [t.get_text() for t in ax.get_xticklabels()] == ["1.5 mm", "2,500 px"]
+    plt.close(figure)
+
+
+def test_bar_labels_follow_the_language_of_render(tmp_path: Path) -> None:
+    seen: dict[str, list[str]] = {}
+
+    def draw(theme: figkit.Theme) -> Figure:
+        figure, ax = plt.subplots(figsize=(6.4, 3.0))
+        bars = ax.bar(["a", "b"], [0.93, 0.5])
+        values = figkit.bar_labels(ax, bars, theme)
+        given = figkit.bar_labels(ax, bars, theme, labels=["v0.1", "1.5"])
+        seen[figkit.language()] = [t.get_text() for t in values + given]
+        return figure
+
+    figkit.render(tmp_path, "b", draw, (figkit.SVG,), (figkit.LIGHT,), language="de")
+    figkit.render(tmp_path, "b", draw, (figkit.SVG,), (figkit.LIGHT,))
+
+    assert seen == {"de": ["0,93", "0,50", "v0.1", "1.5"], "en": ["0.93", "0.50", "v0.1", "1.5"]}
 
 
 def test_render_names_files_by_language_and_drops_the_title_when_headless(
@@ -138,6 +167,49 @@ def test_check_reports_a_missing_language_and_alt_text(tmp_path: Path) -> None:
     assert "figures.json: bars has no alt in de" in problems
     assert "extra.svg: missing the de file extra.de.svg" in problems
     assert "extra.en.svg: not in figures.json, so the page has no alt text for it" in problems
+
+
+@pytest.mark.parametrize(
+    ("manifest", "problem"),
+    [
+        ("{not json", "figures.json: not valid JSON"),
+        ("[]", "figures.json: the top level is not an object"),
+        ('{"languages": "en", "figures": []}', "figures.json: languages is not a list"),
+        ('{"languages": ["en"], "figures": {}}', "figures.json: figures is not a list"),
+        ('{"languages": ["en"], "figures": [1]}', "figures.json: figure 1 is not an object"),
+        (
+            '{"languages": ["en"], "figures": [{"name": "a", "title": "A", "alt": {"en": "x"}}]}',
+            "figures.json: a has no title in en",
+        ),
+        (
+            '{"languages": ["en"], "figures": [{"name": "a", "title": {"en": "A"},'
+            ' "alt": {"en": "x"}, "files": {"en": {"light": "a.en.svg"}}}]}',
+            "figures.json: a has no dark file in en",
+        ),
+    ],
+)
+def test_check_reports_a_broken_manifest_instead_of_failing(
+    tmp_path: Path, manifest: str, problem: str
+) -> None:
+    (tmp_path / "figures.json").write_text(manifest, encoding="utf-8")
+
+    assert any(p.startswith(problem) for p in check(tmp_path))
+
+
+def test_page_entry_reads_the_size_of_a_photo(tmp_path: Path) -> None:
+    entry = figkit.page(tmp_path, "photo", chart, CAPTIONS, figkit.PHOTO)
+
+    assert entry["files"]["en"]["light"] == "photo.en.webp"
+    assert entry["files"]["en"]["width"] == pytest.approx(460.8)
+
+
+def test_page_entry_reads_the_size_of_a_raster_with_a_fixed_pixel_width(tmp_path: Path) -> None:
+    fixed = figkit.Output("png", width=figkit.WEB_WIDTH, pixels=800)
+    figkit.page(tmp_path, "small", chart, CAPTIONS, (fixed,))
+
+    entry = figkit.page_entry(tmp_path, "small", CAPTIONS, fixed)
+
+    assert entry["files"]["de"]["width"] == pytest.approx(460.8)
 
 
 def test_write_manifest_rejects_figures_in_different_languages(tmp_path: Path) -> None:

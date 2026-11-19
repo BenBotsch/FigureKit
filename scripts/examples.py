@@ -6,6 +6,10 @@ chart with direct labels, bars with values and a reference line, a heatmap and a
 
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")  # The script only writes files.
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap

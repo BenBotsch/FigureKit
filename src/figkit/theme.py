@@ -3,15 +3,12 @@
 import json
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from importlib import resources
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, cast
-
-import matplotlib as mpl
-
-mpl.use("Agg")
 
 import matplotlib.pyplot as plt
 from cycler import cycler
@@ -36,6 +33,7 @@ class Theme:
         series: Categorical colours, used in this fixed order.
         ramp: Sequential ramp from low to high, for heatmaps and confusion matrices.
         status: ``good``, ``warning``, ``serious`` and ``critical``. Never used for a series.
+            Read-only and left out of the hash, so themes can be keys of a dict or a cache.
     """
 
     name: str
@@ -48,7 +46,7 @@ class Theme:
     axis: str
     series: tuple[str, ...]
     ramp: tuple[str, ...]
-    status: Mapping[str, str]
+    status: Mapping[str, str] = field(hash=False)
 
 
 @cache
@@ -72,7 +70,7 @@ def _theme(name: str) -> Theme:
         axis=raw["axis"],
         series=tuple(raw["series"]),
         ramp=tuple(raw["ramp"]),
-        status=dict(raw["status"]),
+        status=MappingProxyType(dict(raw["status"])),
     )
 
 

@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any
 
+from matplotlib.category import StrCategoryFormatter
 from matplotlib.figure import Figure
 from matplotlib.ticker import FixedFormatter, Formatter, NullFormatter
 
@@ -23,7 +24,8 @@ _LANGUAGE: ContextVar[str] = ContextVar("figkit_language", default=DEFAULT)
 _HEADLESS: ContextVar[bool] = ContextVar("figkit_headless", default=False)
 
 # A number on its own: not a part of a name such as ResNet18 or AI4I, nor of a version like v0.1.
-_NUMBER = re.compile(r"(?<![\w.,])(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(?![\w.])")
+# A full stop after it ends a sentence; only a stop followed by a digit continues a version.
+_NUMBER = re.compile(r"(?<![\w.,])(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(?!\w|\.\d)")
 _PERCENT = re.compile(r"(\d)%")
 
 
@@ -117,5 +119,8 @@ def localize_ticks(figure: Figure, code: str) -> None:
                 (axis.get_minor_formatter, axis.set_minor_formatter),
             ):
                 inner = get()
-                if not isinstance(inner, FixedFormatter | NullFormatter | Localized):
+                # Names of categories, whether set with labels or plotted as strings, stay as given.
+                if not isinstance(
+                    inner, FixedFormatter | StrCategoryFormatter | NullFormatter | Localized
+                ):
                     put(Localized(inner, code))
