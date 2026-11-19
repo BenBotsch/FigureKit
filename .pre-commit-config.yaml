@@ -13,9 +13,18 @@ repos:
         exclude: (\.svg|OFL-.*\.txt)$
       - id: check-added-large-files
         args: [--maxkb=512]
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.3
+  # Ruff from uv.lock, so pre-commit, CI and the editor use the same version.
+  - repo: local
     hooks:
       - id: ruff-check
-        args: [--fix]
+        name: ruff check
+        entry: uv run --frozen ruff check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
       - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true

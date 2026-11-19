@@ -7,16 +7,23 @@ on:
 
 jobs:
   python:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows too: the SVGs must be byte-identical on every platform, LF line ends included.
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
       - run: uv sync --frozen
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
+      # Ruff runs in pre-commit, with the version of uv.lock.
+      - run: uv run pre-commit run --all-files --show-diff-on-failure
       - run: uv run mypy
       - run: uv run pytest
       - run: uv run figkit check docs/examples
-      - run: uv run pre-commit run --all-files --show-diff-on-failure
+      # The committed gallery must come out of the script unchanged on this platform.
+      - run: uv run python scripts/examples.py
+      - run: git diff --exit-code -- "docs/examples/*.svg"
