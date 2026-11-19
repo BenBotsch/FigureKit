@@ -11,6 +11,12 @@ section of that version.
 - Each release attaches the wheel and the source archive. CI builds both and checks that the
   installed wheel renders figures with the bundled fonts.
 
+### Fixed
+
+- `register_fonts` accepts the bundled fonts when Windows gives the package a short 8.3 path,
+  such as a virtual environment under `C:\Users\RUNNER~1\...`. Before, every figure failed with
+  "not to the bundled file".
+
 ## [0.3.0] - 2026-11-19
 
 ### Breaking changes

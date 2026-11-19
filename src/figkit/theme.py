@@ -95,7 +95,9 @@ def register_fonts() -> tuple[str, str]:
         found = font_manager.findfont(
             font_manager.FontProperties(family=family), fallback_to_default=False
         )
-        if Path(found).parent != FONTS:
+        # The same folder, however it is spelled: Windows may give the package a short 8.3
+        # path such as RUNNER~1 while matplotlib reports the long one.
+        if not Path(found).parent.samefile(FONTS):
             msg = f"font {family!r} resolved to {found}, not to the bundled file"
             raise RuntimeError(msg)
     return families["sans"], families["mono"]

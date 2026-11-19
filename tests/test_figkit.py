@@ -56,6 +56,15 @@ def test_fonts_resolve_to_the_bundled_files() -> None:
     }
 
 
+def test_fonts_resolve_when_the_package_path_is_spelled_differently(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Like a Windows 8.3 short path: another spelling of the same folder.
+    monkeypatch.setattr("figkit.theme.FONTS", FONTS / ".." / FONTS.name)
+
+    assert figkit.register_fonts() == ("Bricolage Grotesque", "JetBrains Mono")
+
+
 def test_render_writes_a_transparent_svg_and_png_per_theme(tmp_path: Path) -> None:
     paths = figkit.render(tmp_path, "example", chart)
 
