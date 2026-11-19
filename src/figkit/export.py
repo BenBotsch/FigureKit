@@ -10,7 +10,12 @@ images to their column, so equal widths give the same text size in every figure,
 at the same left edge. A narrower drawing leaves empty space on the right.
 """
 
+import base64
+import hashlib
 import io
+import re
+import struct
+import zlib
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from itertools import groupby
@@ -117,7 +122,7 @@ def save(figure: Figure, path: Path, output: Output) -> Path:
         figure.savefig(
             svg, format="svg", transparent=output.transparent, **options, **_SAVE_OPTIONS["svg"]
         )
-        path.write_bytes(svg.getvalue())
+        path.write_bytes(_portable_images(svg.getvalue()))
         return path
     buffer = io.BytesIO()
     figure.savefig(buffer, format="png", dpi=dpi, transparent=output.transparent, **options)
@@ -125,6 +130,55 @@ def save(figure: Figure, path: Path, output: Output) -> Path:
     with Image.open(buffer) as image:
         _write_raster(image, path, output)
     return path
+
+
+# An image that matplotlib embeds in an SVG, with the id it derives from the PNG bytes.
+_EMBEDDED = re.compile(rb'data:image/png;base64,\n([A-Za-z0-9+/=]+)"(?: id="(image[0-9a-f]{10})")?')
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def _portable_images(svg: bytes) -> bytes:
+    """The SVG with every embedded PNG written again by :func:`_png`.
+
+    matplotlib embeds images, such as a heatmap drawn with ``imshow``, as PNGs that Pillow
+    compresses with the zlib of its build. Linux and Windows builds compress the same pixels to
+    different bytes, and matplotlib derives the image id from them. Writing the PNG again with
+    Python's zlib and deriving the id from that PNG keeps the file the same on every platform.
+    """
+
+    def rewrite(match: re.Match[bytes]) -> bytes:
+        with Image.open(io.BytesIO(base64.b64decode(match[1]))) as image:
+            png = _png(np.asarray(image.convert("RGBA")))
+        text = b"data:image/png;base64,\n" + base64.b64encode(png) + b'"'
+        if match[2] is None:
+            return text
+        salt = str(plt.rcParams["svg.hashsalt"] or "").encode()
+        return text + b' id="image' + hashlib.sha256(salt + png).hexdigest()[:10].encode() + b'"'
+
+    return _EMBEDDED.sub(rewrite, svg)
+
+
+def _png(rgba: np.ndarray[Any, np.dtype[np.uint8]]) -> bytes:
+    """An 8-bit RGBA PNG of ``rgba`` without metadata, every row with the filter ``Up``."""
+    height, width = rgba.shape[:2]
+    rows = rgba.reshape(height, width * 4).astype(np.int16)
+    # Up stores each row as its difference to the row above, which turns the flat cells of a
+    # heatmap into runs of zeros; the first row is compared with zeros.
+    up = (rows - np.vstack([np.zeros_like(rows[:1]), rows[:-1]])) % 256
+    raw = np.hstack([np.full((height, 1), 2), up]).astype(np.uint8).tobytes()
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        )
+
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    return (
+        _PNG_SIGNATURE
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(raw, 9))
+        + chunk(b"IEND", b"")
+    )
 
 
 def canvas(figure: Figure, width: float, pad: float = PAD) -> Bbox:

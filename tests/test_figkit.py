@@ -3,6 +3,7 @@ import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -90,6 +91,31 @@ def test_svg_files_are_reproducible(tmp_path: Path) -> None:
 
     for a, b in zip(first, second, strict=True):
         assert a.read_bytes() == b.read_bytes()
+
+
+def test_embedded_images_do_not_depend_on_the_png_compression(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def heatmap(theme: figkit.Theme) -> Figure:
+        figure, ax = plt.subplots(figsize=(4, 3))
+        ax.imshow(np.arange(36).reshape(6, 6), cmap="Blues")
+        return figure
+
+    first = figkit.render(tmp_path / "a", "h", heatmap, (figkit.SVG,), (figkit.LIGHT,))
+    # Another zlib, as in a Pillow build of another platform, compresses the same pixels to
+    # other bytes; a lower level stands in for it.
+    save = Image.Image.save
+
+    def other_zlib(image: Image.Image, fp: Any, format: str | None = None, **params: Any) -> None:
+        if format == "png":
+            params["compress_level"] = 1
+        save(image, fp, format, **params)
+
+    monkeypatch.setattr(Image.Image, "save", other_zlib)
+    second = figkit.render(tmp_path / "b", "h", heatmap, (figkit.SVG,), (figkit.LIGHT,))
+
+    assert first[0].read_bytes() == second[0].read_bytes()
+    assert b"data:image/png" in first[0].read_bytes()
 
 
 def test_svg_files_end_lines_with_lf_on_every_platform(tmp_path: Path) -> None:
