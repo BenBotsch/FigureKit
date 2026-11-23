@@ -54,6 +54,7 @@ from figkit.language import headless, language, localize, number
 from figkit.manifest import Caption, page
 from figkit.manifest import entry as page_entry
 from figkit.manifest import write as write_manifest
+from figkit.project import Project, project, project_style
 from figkit.theme import (
     DARK,
     DEFAULT,
@@ -89,6 +90,7 @@ __all__ = [
     "Caption",
     "Draw",
     "Output",
+    "Project",
     "Style",
     "StyleError",
     "Theme",
@@ -114,6 +116,8 @@ __all__ = [
     "parse_style",
     "path_for",
     "percent",
+    "project",
+    "project_style",
     "rc",
     "reference_line",
     "register_fonts",
