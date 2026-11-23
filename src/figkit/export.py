@@ -30,7 +30,7 @@ from matplotlib.transforms import Bbox
 from PIL import Image
 
 from figkit.language import localize_ticks, speaking
-from figkit.theme import THEMES, TYPE, Theme, styled
+from figkit.theme import DEFAULT, TYPE, Style, Theme, styled
 
 Draw = Callable[[Theme], Figure]
 
@@ -81,15 +81,20 @@ _SAVE_OPTIONS: dict[str, dict[str, Any]] = {
 
 
 def path_for(
-    directory: Path, name: str, theme: Theme, output: Output, language: str | None = None
+    directory: Path,
+    name: str,
+    theme: Theme,
+    output: Output,
+    language: str | None = None,
+    style: Style | None = None,
 ) -> Path:
     """File of one figure in one theme and format, ``<name>[.<language>][-<theme>].<format>``.
 
-    The light theme has no suffix and the dark one ``-dark``. Any other theme gets its name as the
-    suffix, so that two custom themes never write the same file.
+    The default theme of ``style``, light in the bundled one, has no suffix. Every other theme
+    gets its name as the suffix, ``-dark``, so that two themes never write the same file.
     """
     stem = f"{name}.{language}" if language else name
-    suffix = "" if theme.name == "light" else f"-{theme.name}"
+    suffix = (style or DEFAULT).suffix(theme.name)
     return directory / f"{stem}{suffix}.{output.format}"
 
 
@@ -299,10 +304,11 @@ def render(
     name: str,
     draw: Draw,
     outputs: Sequence[Output] = WEB,
-    themes: Sequence[Theme] = THEMES,
+    themes: Sequence[Theme] | None = None,
     *,
     language: str | None = None,
     headless: bool = False,
+    style: Style | None = None,
 ) -> list[Path]:
     """Draw one figure in every theme and write it in every output.
 
@@ -315,12 +321,13 @@ def render(
         name: Name of the figure, the start of every file name.
         draw: Function of the theme that returns a new figure.
         outputs: Formats to write.
-        themes: Themes to draw.
+        themes: Themes to draw, by default all themes of ``style``.
         language: Code such as ``de``. It goes into the file names, ``<name>.de.svg``, and
             :func:`figkit.language` returns it while ``draw`` runs; numeric tick labels and
             :func:`figkit.number` follow it. Without it the figure is English and unmarked.
         headless: Leave out the title and subtitle of :func:`figkit.title`, for a page that
             shows them as text.
+        style: Style that names the files, see :func:`path_for`; by default the bundled one.
 
     Returns:
         The written files, in the order of ``themes`` and then ``outputs``.
@@ -329,8 +336,9 @@ def render(
         ValueError: If the drawing does not fit the canvas or has text below the minimum size;
             the message names the figure.
     """
+    style = style or DEFAULT
     paths: list[Path] = []
-    for theme in themes:
+    for theme in style.themes if themes is None else themes:
         for transparent, group in groupby(outputs, key=lambda o: o.transparent):
             used = replace(theme, surface="none") if transparent else theme
             with (
@@ -343,7 +351,11 @@ def render(
                     localize_ticks(figure, language or "en")
                     check_text(figure, theme.type.minimum)
                     paths.extend(
-                        save(figure, path_for(directory, name, theme, output, language), output)
+                        save(
+                            figure,
+                            path_for(directory, name, theme, output, language, style),
+                            output,
+                        )
                         for output in group
                     )
                 except ValueError as error:

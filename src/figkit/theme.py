@@ -97,8 +97,8 @@ class Theme:
     """Colours of one page mode.
 
     Attributes:
-        name: Name of the mode, such as ``light`` or ``dark``. The files of the light theme have
-            no suffix, every other theme adds ``-<name>``.
+        name: Name of the mode, such as ``light`` or ``dark``. The files of the default theme of
+            the style have no suffix, every other theme adds ``-<name>``.
         surface: Background of opaque output. Transparent output replaces it with ``none``.
         pages: Page colours the transparent output is meant for; the colours were checked on them.
         ink: Titles and values.
@@ -138,7 +138,7 @@ class Style:
             Read-only and left out of the hash.
         css: Custom properties of the website's stylesheet and the token each equals, as
             ``(key, index)``; ``index`` picks an entry of a list token such as ``pages``.
-            Read-only and left out of the hash.
+            Empty when the tokens name none. Read-only and left out of the hash.
         source: File the style was read from, ``None`` for one built in code.
     """
 
@@ -164,6 +164,22 @@ class Style:
                 return theme
         msg = f"no theme {name!r}; the style has {', '.join(t.name for t in self.themes)}"
         raise KeyError(msg)
+
+    def suffix(self, name: str) -> str:
+        """Suffix of the files of theme ``name``: none for the default theme, else ``-<name>``."""
+        return "" if name == self.default else f"-{name}"
+
+    def split(self, stem: str) -> tuple[str, str]:
+        """Split a file stem into the figure and the name of its theme.
+
+        ``bars.de-dark`` gives ``("bars.de", "dark")``, ``bars.de`` gives the default theme. A
+        stem may only end in the suffix of a theme of this style.
+        """
+        others = sorted((t.name for t in self.themes if t.name != self.default), key=len)
+        for name in reversed(others):
+            if stem.endswith(f"-{name}"):
+                return stem.removesuffix(f"-{name}"), name
+        return stem, self.default
 
 
 def load_style(path: Path) -> Style:
@@ -214,7 +230,8 @@ def parse_style(data: object, *, base: Path | None = None, source: Path | None =
         pairs = {"light": "dark", "dark": "light"}
     else:
         pairs = {name: value["pair"] for name, value in raw["themes"].items() if "pair" in value}
-    css = dict(CSS_TOKENS)
+    # Version 1 is the portfolio's format; a project of version 2 names its own properties.
+    css = dict(CSS_TOKENS) if raw.get("version", 1) == 1 else {}
     if "css" in raw:
         css = {
             key: (target[0], target[1] if len(target) > 1 else None)

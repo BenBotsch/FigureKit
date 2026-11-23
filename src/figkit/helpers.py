@@ -11,7 +11,7 @@ from matplotlib.text import Annotation, Text
 from matplotlib.ticker import PercentFormatter
 
 from figkit.language import headless, localize
-from figkit.theme import TYPE, Theme, tokens
+from figkit.theme import DEFAULT, TYPE, Style, Theme
 
 Axis = Literal["x", "y"]
 
@@ -29,11 +29,19 @@ def hex_colour(rgba: Sequence[float]) -> str:
     return "#" + "".join(f"{round(v * 255):02x}" for v in rgba[:3])
 
 
-def ink_on(colour: str) -> str:
-    """Dark or white text, whichever reads better on a fill of ``colour``."""
+def _luminance(colour: str) -> float:
     r, g, b = (int(colour[i : i + 2], 16) / 255 for i in (1, 3, 5))
-    light = 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5
-    return tokens()["themes"]["light"]["ink"] if light else "#ffffff"
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def ink_on(colour: str, style: Style | None = None) -> str:
+    """Dark or white text, whichever reads better on a fill of ``colour``.
+
+    The dark text is the darkest ink of ``style``, by default of the bundled style.
+    """
+    if _luminance(colour) <= 0.5:
+        return "#ffffff"
+    return min(((style or DEFAULT).themes), key=lambda t: _luminance(t.ink)).ink
 
 
 def title(ax: Axes, text: str, theme: Theme, subtitle: str | None = None) -> None:

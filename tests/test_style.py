@@ -10,6 +10,7 @@ from fontTools.ttLib import TTFont
 from matplotlib.figure import Figure
 
 import figkit
+from figkit.check import check, check_tokens
 from figkit.theme import FONTS, TOKENS
 
 
@@ -233,3 +234,88 @@ def test_the_schema_knows_the_keys_the_loader_knows() -> None:
     assert set(theme["required"]) == set(theme["properties"]) - {"$comment", "pair"}
     assert set(font["properties"]) - {"$comment", "files"} == set(bundled()["font"])
     assert set(schema["properties"]) - {"$comment"} == set(bundled()) - {"$comment"}
+
+
+def three_themes(default: str = "light") -> figkit.Style:
+    """Light and dark as a pair, and a print theme on its own."""
+    data = bundled()
+    data["themes"]["print"] = copy.deepcopy(data["themes"]["light"])
+    del data["themes"]["print"]["pair"]
+    data["default"] = default
+    return figkit.parse_style(data)
+
+
+def small(theme: figkit.Theme) -> Figure:
+    figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 2))
+    ax.plot([0, 1], [0, 1], color=theme.series[0])
+    return figure
+
+
+def test_files_are_named_after_the_default_theme_of_the_style(tmp_path: Path) -> None:
+    style = three_themes(default="dark")
+
+    paths = figkit.render(tmp_path, "f", small, (figkit.SVG,), style=style)
+
+    assert [p.name for p in paths] == ["f-light.svg", "f.svg", "f-print.svg"]
+    assert style.split("f.de-print") == ("f.de", "print")
+    assert style.split("f.de") == ("f.de", "dark")
+    assert style.split("f-sepia") == ("f-sepia", "dark")
+
+
+def test_check_pairs_only_the_themes_with_a_pair(tmp_path: Path) -> None:
+    style = three_themes()
+    figkit.render(tmp_path, "f", small, (figkit.SVG,), style=style)
+    assert check(tmp_path, style=style) == []
+
+    (tmp_path / "f-dark.svg").unlink()
+    assert check(tmp_path, style=style) == ["f.svg: missing its pair f-dark.svg"]
+    (tmp_path / "f.svg").unlink()
+    assert check(tmp_path, style=style) == []
+
+
+def test_the_manifest_lists_every_theme_of_the_style(tmp_path: Path) -> None:
+    style = three_themes()
+    captions = {"en": figkit.Caption("Title", "Alt text.")}
+
+    entry = figkit.page(tmp_path, "f", lambda _, theme: small(theme), captions, style=style)
+    figkit.write_manifest(tmp_path, [entry])
+
+    files = entry["files"]["en"]
+    assert (files["light"], files["dark"], files["print"]) == (
+        "f.en.svg",
+        "f.en-dark.svg",
+        "f.en-print.svg",
+    )
+    assert check(tmp_path, style=style) == []
+    (tmp_path / "f.en-print.svg").unlink()
+    assert "figures.json: f lists f.en-print.svg, which does not exist" in check(
+        tmp_path, style=style
+    )
+
+
+def test_check_tokens_follows_the_css_of_the_style(tmp_path: Path) -> None:
+    css = tmp_path / "tokens.css"
+    css.write_text("--color-ink: light-dark(#1d1e22, #ffffff);", encoding="utf-8")
+    data = bundled()
+    data["css"] = {"ink": ["ink"]}
+
+    assert check_tokens(css, figkit.parse_style(data)) == [
+        "tokens.css: --color-ink is #ffffff in dark, the figures use #eceef3"
+    ]
+    del data["css"]
+    assert check_tokens(css, figkit.parse_style(data)) == [
+        "tokens.css: the style names no custom properties, add css to its tokens"
+    ]
+    assert check_tokens(css, three_themes(default="print")) == [
+        "tokens.css: the default theme 'print' has no pair for light-dark()"
+    ]
+
+
+def test_ink_on_takes_the_darkest_ink_of_the_style() -> None:
+    data = bundled()
+    data["themes"]["light"]["ink"] = "#000000"
+    style = figkit.parse_style(data)
+
+    assert figkit.ink_on("#ffffff") == figkit.LIGHT.ink
+    assert figkit.ink_on("#ffffff", style) == "#000000"
+    assert figkit.ink_on("#000000", style) == "#ffffff"

@@ -21,7 +21,7 @@ from matplotlib.figure import Figure
 from PIL import Image
 
 from figkit.export import SVG, Output, path_for, render
-from figkit.theme import DARK, LIGHT, Theme
+from figkit.theme import DEFAULT, Style, Theme
 
 FILE = "figures.json"
 VERSION = 1
@@ -81,43 +81,61 @@ def page(
     draw: PageDraw,
     captions: Mapping[str, Caption],
     outputs: Sequence[Output] = (SVG,),
+    style: Style | None = None,
 ) -> dict[str, Any]:
     """Write ``name`` without its title in each language of ``captions`` and describe it.
 
-    ``draw`` receives the language and the theme. The first output is the one the page shows;
-    for photographs pass :data:`figkit.PHOTO` and the page gets the WebP.
+    ``draw`` receives the language and the theme, once per theme of ``style``. The first output
+    is the one the page shows; for photographs pass :data:`figkit.PHOTO` and the page gets the
+    WebP.
 
     Returns:
         The entry of the figure for :func:`write`.
     """
     for language in captions:
-        render(directory, name, partial(draw, language), outputs, language=language, headless=True)
-    return entry(directory, name, captions, outputs[0])
+        render(
+            directory,
+            name,
+            partial(draw, language),
+            outputs,
+            language=language,
+            headless=True,
+            style=style,
+        )
+    return entry(directory, name, captions, outputs[0], style)
 
 
 def entry(
-    directory: Path, name: str, captions: Mapping[str, Caption], output: Output = SVG
+    directory: Path,
+    name: str,
+    captions: Mapping[str, Caption],
+    output: Output = SVG,
+    style: Style | None = None,
 ) -> dict[str, Any]:
     """The entry of ``name`` for :func:`write`, from files that :func:`page` wrote earlier.
 
     For a figure whose drawing needs more than the others, such as a trained model, so that a
-    separate step writes it: the manifest of all figures can still be written in one place.
+    separate step writes it: the manifest of all figures can still be written in one place. The
+    files of each language are listed under the names of the themes of ``style``, ``light`` and
+    ``dark`` in the bundled one; the size is that of the default theme.
 
     Raises:
         FileNotFoundError: If a file of a language in ``captions`` is missing.
     """
+    style = style or DEFAULT
     files: dict[str, dict[str, Any]] = {}
     for language in captions:
-        light = path_for(directory, name, LIGHT, output, language)
-        dark = path_for(directory, name, DARK, output, language)
-        for path in (light, dark):
+        paths = {
+            theme.name: path_for(directory, name, theme, output, language, style)
+            for theme in style.themes
+        }
+        for path in paths.values():
             if not path.is_file():
                 msg = f"{path.name} is missing; write the figure with page() first"
                 raise FileNotFoundError(msg)
-        width, height = size(light, output)
+        width, height = size(paths[style.default], output)
         files[language] = {
-            "light": light.name,
-            "dark": dark.name,
+            **{theme: path.name for theme, path in paths.items()},
             "width": round(width, 1),
             "height": round(height, 1),
         }
