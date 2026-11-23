@@ -30,7 +30,7 @@ from matplotlib.transforms import Bbox
 from PIL import Image
 
 from figkit.language import localize_ticks, speaking
-from figkit.theme import THEMES, Theme, styled, tokens
+from figkit.theme import THEMES, TYPE, Theme, styled
 
 Draw = Callable[[Theme], Figure]
 
@@ -278,13 +278,15 @@ def _entries(values: list[int], channels: int, count: int) -> list[int]:
     return values + [0] * (channels * count - len(values))
 
 
-def check_text(figure: Figure) -> None:
+def check_text(figure: Figure, minimum: float | None = None) -> None:
     """Fail on visible text below the smallest size of the style, which pages make unreadable.
 
     Raises:
-        ValueError: If a text is smaller than ``font.minimum`` of the tokens.
+        ValueError: If a text is smaller than ``minimum``, by default the minimum of the bundled
+            style.
     """
-    minimum: float = tokens()["font"]["minimum"]
+    if minimum is None:
+        minimum = TYPE.minimum
     for text in figure.findobj(Text):
         size = float(text.get_fontsize())
         if text.get_visible() and text.get_text().strip() and size < minimum:
@@ -339,7 +341,7 @@ def render(
                 figure = draw(used)
                 try:
                     localize_ticks(figure, language or "en")
-                    check_text(figure)
+                    check_text(figure, theme.type.minimum)
                     paths.extend(
                         save(figure, path_for(directory, name, theme, output, language), output)
                         for output in group

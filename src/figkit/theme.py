@@ -17,6 +17,56 @@ from matplotlib import font_manager
 FONTS = Path(str(resources.files("figkit") / "fonts"))
 
 
+@cache
+def tokens() -> dict[str, Any]:
+    """The contents of ``tokens.json``, the single source of colours and type sizes."""
+    text = (resources.files("figkit") / "tokens.json").read_text(encoding="utf-8")
+    data: dict[str, Any] = json.loads(text)
+    return data
+
+
+@dataclass(frozen=True, slots=True)
+class Typography:
+    """Font families and sizes in pt of one style.
+
+    Attributes:
+        sans: Family of text.
+        mono: Family of numbers and identifiers.
+        size: Default size of text.
+        title: Size of titles.
+        label: Size of axis labels, legends and subtitles.
+        tick: Size of tick labels.
+        annotation: Size of values and annotations on the plot.
+        minimum: Smallest size allowed; :func:`figkit.render` fails below it.
+    """
+
+    sans: str
+    mono: str
+    size: float
+    title: float
+    label: float
+    tick: float
+    annotation: float
+    minimum: float
+
+    @classmethod
+    def from_tokens(cls, raw: Mapping[str, Any]) -> "Typography":
+        """Typography of the ``font`` section of a tokens file."""
+        return cls(
+            sans=raw["sans"],
+            mono=raw["mono"],
+            size=raw["size"],
+            title=raw["title"],
+            label=raw["label"],
+            tick=raw["tick"],
+            annotation=raw["annotation"],
+            minimum=raw["minimum"],
+        )
+
+
+TYPE = Typography.from_tokens(tokens()["font"])
+
+
 @dataclass(frozen=True, slots=True)
 class Theme:
     """Colours of one page mode.
@@ -34,6 +84,7 @@ class Theme:
         ramp: Sequential ramp from low to high, for heatmaps and confusion matrices.
         status: ``good``, ``warning``, ``serious`` and ``critical``. Never used for a series.
             Read-only and left out of the hash, so themes can be keys of a dict or a cache.
+        type: Fonts and sizes; every helper takes them from the theme it receives.
     """
 
     name: str
@@ -47,14 +98,7 @@ class Theme:
     series: tuple[str, ...]
     ramp: tuple[str, ...]
     status: Mapping[str, str] = field(hash=False)
-
-
-@cache
-def tokens() -> dict[str, Any]:
-    """The contents of ``tokens.json``, the single source of colours and type sizes."""
-    text = (resources.files("figkit") / "tokens.json").read_text(encoding="utf-8")
-    data: dict[str, Any] = json.loads(text)
-    return data
+    type: Typography = TYPE
 
 
 def _theme(name: str) -> Theme:
@@ -105,8 +149,9 @@ def register_fonts() -> tuple[str, str]:
 
 def rc(theme: Theme) -> dict[str, Any]:
     """Matplotlib settings for the theme: recessive axes, hairline grid, text in ink."""
-    sans, mono = register_fonts()
-    size = tokens()["font"]
+    register_fonts()
+    size = theme.type
+    sans, mono = size.sans, size.mono
     return {
         "figure.facecolor": theme.surface,
         "axes.facecolor": theme.surface,
@@ -115,11 +160,11 @@ def rc(theme: Theme) -> dict[str, Any]:
         "axes.linewidth": 0.8,
         "axes.labelcolor": theme.secondary,
         "axes.titlecolor": theme.ink,
-        "axes.titlesize": size["title"],
+        "axes.titlesize": size.title,
         "axes.titleweight": "semibold",
         "axes.titlelocation": "left",
         "axes.titlepad": 10,
-        "axes.labelsize": size["label"],
+        "axes.labelsize": size.label,
         "axes.labelpad": 6,
         "axes.spines.top": False,
         "axes.spines.right": False,
@@ -132,19 +177,19 @@ def rc(theme: Theme) -> dict[str, Any]:
         "ytick.color": theme.axis,
         "xtick.labelcolor": theme.secondary,
         "ytick.labelcolor": theme.secondary,
-        "xtick.labelsize": size["tick"],
-        "ytick.labelsize": size["tick"],
+        "xtick.labelsize": size.tick,
+        "ytick.labelsize": size.tick,
         "xtick.major.size": 3,
         "ytick.major.size": 3,
         "text.color": theme.ink,
         "legend.frameon": False,
-        "legend.fontsize": size["label"],
+        "legend.fontsize": size.label,
         "legend.labelcolor": theme.secondary,
         "legend.handlelength": 1.4,
         "font.family": "sans-serif",
         "font.sans-serif": [sans],
         "font.monospace": [mono],
-        "font.size": size["size"],
+        "font.size": size.size,
         "mathtext.fontset": "custom",
         # Mathtext loads every face of the custom set for each label, log ticks too. Faces left
         # at their defaults fall back to generic families such as cursive, which a bare Linux

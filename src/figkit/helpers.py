@@ -11,15 +11,17 @@ from matplotlib.text import Annotation, Text
 from matplotlib.ticker import PercentFormatter
 
 from figkit.language import headless, localize
-from figkit.theme import Theme, tokens
+from figkit.theme import TYPE, Theme, tokens
 
 Axis = Literal["x", "y"]
 
 
-def mono() -> str:
-    """Family of numbers and identifiers: values, feature names, code."""
-    family: str = tokens()["font"]["mono"]
-    return family
+def mono(theme: Theme | None = None) -> str:
+    """Family of numbers and identifiers: values, feature names, code.
+
+    Without a theme it is the family of the bundled style.
+    """
+    return (theme.type if theme is not None else TYPE).mono
 
 
 def hex_colour(rgba: Sequence[float]) -> str:
@@ -43,12 +45,12 @@ def title(ax: Axes, text: str, theme: Theme, subtitle: str | None = None) -> Non
     """
     if headless():
         return
-    size = tokens()["font"]
+    size = theme.type
     if subtitle is None:
         ax.set_title(text)
         return
     gap = 6
-    ax.set_title(text, pad=gap + size["label"] * 1.25 + 4)
+    ax.set_title(text, pad=gap + size.label * 1.25 + 4)
     ax.annotate(
         subtitle,
         xy=(0, 1),
@@ -57,7 +59,7 @@ def title(ax: Axes, text: str, theme: Theme, subtitle: str | None = None) -> Non
         textcoords="offset points",
         va="bottom",
         ha="left",
-        fontsize=size["label"],
+        fontsize=size.label,
         color=theme.secondary,
     )
 
@@ -94,16 +96,20 @@ def category_axis(ax: Axes, axis: Axis = "y") -> None:
     ax.spines["left" if axis == "y" else "bottom"].set_visible(False)
 
 
-def mono_ticks(ax: Axes, axis: Axis = "y") -> None:
+def mono_ticks(ax: Axes, axis: Axis = "y", theme: Theme | None = None) -> None:
     """Set the tick labels of an axis in the mono font, for identifiers such as column names."""
     labels = ax.get_yticklabels() if axis == "y" else ax.get_xticklabels()
     for label in labels:
-        label.set_fontfamily(mono())
+        label.set_fontfamily(mono(theme))
 
 
 def value(ax: Axes, x: float, y: float, text: str, theme: Theme, **kwargs: Any) -> Text:
     """A number on the plot, in mono and ink."""
-    options = {"fontfamily": mono(), "fontsize": tokens()["font"]["annotation"], "color": theme.ink}
+    options: dict[str, Any] = {
+        "fontfamily": mono(theme),
+        "fontsize": theme.type.annotation,
+        "color": theme.ink,
+    }
     return ax.text(x, y, text, **(options | kwargs))
 
 
@@ -130,8 +136,8 @@ def bar_labels(
         bars,
         labels=texts,
         padding=padding,
-        fontfamily=mono(),
-        fontsize=tokens()["font"]["annotation"],
+        fontfamily=mono(theme),
+        fontsize=theme.type.annotation,
         color=theme.secondary,
     )
     return result
@@ -154,7 +160,7 @@ def reference_line(
     above a horizontal line, and on ``side`` of a vertical one; use ``left`` near the right edge.
     """
     line_colour = colour or theme.muted
-    small = {"fontsize": tokens()["font"]["annotation"], "color": theme.secondary}
+    small: dict[str, Any] = {"fontsize": theme.type.annotation, "color": theme.secondary}
     if axis == "x":
         ax.axvline(position, color=line_colour, linewidth=1, zorder=1)
         return ax.text(
@@ -197,7 +203,7 @@ def line_labels(
         theme: Theme of the figure.
         offset: Distance from the line end to the text, in points.
     """
-    size = tokens()["font"]["annotation"]
+    size = theme.type.annotation
     spacing = size * 1.35
     figure = ax.get_figure()
     dpi = figure.dpi if figure is not None else 72

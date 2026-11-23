@@ -358,3 +358,37 @@ def test_reference_line_label_can_sit_left_of_a_vertical_line() -> None:
     assert (right.get_horizontalalignment(), right.get_text()) == ("left", " limit")
     assert (left.get_horizontalalignment(), left.get_text()) == ("right", "limit ")
     plt.close(figure)
+
+
+def test_typography_comes_from_the_tokens() -> None:
+    font = figkit.tokens()["font"]
+    assert figkit.LIGHT.type == figkit.DARK.type == figkit.TYPE
+    assert (figkit.TYPE.sans, figkit.TYPE.mono) == (font["sans"], font["mono"])
+    assert figkit.TYPE.minimum == font["minimum"]
+    assert figkit.rc(figkit.LIGHT)["axes.titlesize"] == font["title"]
+
+
+def test_helpers_take_the_type_of_their_theme() -> None:
+    large = replace(figkit.LIGHT, type=replace(figkit.TYPE, annotation=12.0, mono="DejaVu Sans"))
+    figure, ax = plt.subplots()
+    text = figkit.value(ax, 0, 0, "1", large)
+    [label] = figkit.line_labels(ax, [(1, 0.5, "a")], large)
+    plt.close(figure)
+
+    assert text.get_fontsize() == label.get_fontsize() == 12.0
+    assert text.get_fontfamily() == ["DejaVu Sans"]
+    assert figkit.mono(large) == "DejaVu Sans"
+    assert figkit.mono() == figkit.TYPE.mono
+
+
+def test_render_uses_the_minimum_of_the_theme(tmp_path: Path) -> None:
+    strict = replace(figkit.LIGHT, type=replace(figkit.TYPE, minimum=9.0))
+
+    def chart(theme: figkit.Theme) -> Figure:
+        figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 2))
+        figkit.value(ax, 0.5, 0.5, "8 pt", theme)
+        return figure
+
+    figkit.render(tmp_path, "ok", chart, (figkit.SVG,), (figkit.LIGHT,))
+    with pytest.raises(ValueError, match="minimum is 9"):
+        figkit.render(tmp_path, "strict", chart, (figkit.SVG,), (strict,))

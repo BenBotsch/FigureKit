@@ -54,7 +54,18 @@ from figkit.language import headless, language, localize, number
 from figkit.manifest import Caption, page
 from figkit.manifest import entry as page_entry
 from figkit.manifest import write as write_manifest
-from figkit.theme import DARK, LIGHT, THEMES, Theme, rc, register_fonts, styled, tokens
+from figkit.theme import (
+    DARK,
+    LIGHT,
+    THEMES,
+    TYPE,
+    Theme,
+    Typography,
+    rc,
+    register_fonts,
+    styled,
+    tokens,
+)
 
 __all__ = [
     "CARD",
@@ -66,12 +77,14 @@ __all__ = [
     "RASTER_DPI",
     "SVG",
     "THEMES",
+    "TYPE",
     "WEB",
     "WEB_WIDTH",
     "Caption",
     "Draw",
     "Output",
     "Theme",
+    "Typography",
     "bar_labels",
     "canvas",
     "category_axis",
