@@ -104,7 +104,56 @@ In CI:
 
 ```sh
 uv run figkit check docs/figures docs/figures/page
-uv run figkit check --tokens ../Portfolio/src/styles/tokens.css
+uv run figkit check --css ../Portfolio/src/styles/tokens.css
+```
+
+### A style of your own
+
+The bundled style is the portfolio's. Another website or project describes its own in a tokens
+file in the format of [`tokens.json`](src/figkit/tokens.json), with any number of themes:
+
+```json
+{
+  "$schema": "./tokens.schema.json",
+  "version": 2,
+  "default": "light",
+  "font": {"sans": "Inter", "mono": "IBM Plex Mono", "files": ["fonts/*.ttf"], "size": 9, "...": "..."},
+  "themes": {
+    "light": {"pair": "dark", "surface": "#ffffff", "ink": "#111111", "...": "..."},
+    "dark": {"pair": "light", "...": "..."},
+    "print": {"...": "..."}
+  },
+  "css": {"text": ["ink"], "bg": ["pages", 0]}
+}
+```
+
+- `default` is the theme whose files carry no suffix; every other theme writes `-<name>`.
+- `pair` names the theme a page swaps with, such as light and dark. `figkit check` requires the
+  file of the pair; a theme without a pair, such as `print`, stands alone.
+- `font.files` are glob patterns relative to the tokens file. Without them the bundled fonts apply.
+  matplotlib knows one file per family in a process, so a style with its own font files needs
+  family names of its own.
+- `css` maps custom properties of the website, `--color-text: light-dark(#111111, #eeeeee)`, to
+  tokens. `figkit check --css` compares the first colour with the default theme and the second
+  with its pair.
+
+`figkit.load_style(path)` lists every problem of a file with its place, such as
+`themes.dark.series[2]: 'blue' is not a #rrggbb colour`, and rejects unknown keys. The style
+then goes to `render`, `page`, `page_entry` and `check`:
+
+```python
+style = figkit.load_style(Path("figures/tokens.json"))
+figkit.render(Path("docs/figures"), "recall", recall, style=style)
+# recall.svg, recall-dark.svg, recall-print.svg and the PNGs
+```
+
+A project names its style once in its `pyproject.toml`; `figkit.project_style()` reads it from
+scripts, and `figkit check` uses it unless `--style` or `--css` say otherwise:
+
+```toml
+[tool.figkit]
+tokens = "figures/tokens.json"
+css = "../Website/src/styles/tokens.css"
 ```
 
 ## Rules

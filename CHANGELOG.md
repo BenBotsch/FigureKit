@@ -6,6 +6,28 @@ section of that version.
 
 ## [Unreleased]
 
+### Added
+
+- A style of your own. `load_style` reads a tokens file in the new version 2 with any number of
+  themes, a `default` theme whose files carry no suffix, theme `pair`s, project font files in
+  `font.files` and a `css` mapping for the stylesheet check. `StyleError` lists every problem of
+  the file with its place and catches unknown keys; `tokens.schema.json` helps editors.
+- `render`, `page`, `page_entry`, `path_for`, `check`, `check_tokens` and `ink_on` take an
+  optional `style`. `figkit check` pairs only themes that name a pair, and the manifest lists the
+  files under the names of all themes.
+- Each `Theme` carries its fonts and sizes as `Typography` in `theme.type`; the helpers, `rc` and
+  the minimum text size take them from the theme they draw with.
+- `[tool.figkit]` in `pyproject.toml` names `tokens` and `css` of a project. `figkit.project()`
+  and `figkit.project_style()` read it, and `figkit check` uses it unless `--style` or `--css`
+  override it.
+
+### Changed
+
+- `figkit check --tokens` is now `--css`; `--tokens` stays as an alias.
+- The bundled `tokens.json` uses version 2. Files without `version` still load as version 1 and
+  give the same style. A version 2 file without `css` names no properties for `check --css`.
+- `mono()` and `mono_ticks()` accept a theme and use its mono family.
+
 ## [0.3.1] - 2026-11-19
 
 ### Added

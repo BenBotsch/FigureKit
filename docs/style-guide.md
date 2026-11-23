@@ -98,8 +98,10 @@ languages, when `figures.json` lacks a title or alt text or does not list a page
 transparent is opaque, when a web file is not on the 6.4 in canvas (460.8 pt as SVG, 1600 px as
 PNG; `--any-width` turns this off), or when a file exceeds its budget: SVG 150 KB, PNG and WebP 250 KB, and
 1 MB for a PNG next to a WebP of the same name, the copy of a photograph.
-`figkit check --tokens tokens.css` compares the page, text and line colours with the stylesheet of
-the website.
+`figkit check --css tokens.css` compares the page, text and line colours with the stylesheet of
+the website. A project with its own style passes it with `--style tokens.json` or names it in
+`[tool.figkit]`; then the pairs are those of its themes, and a theme without a pair, such as one
+for print, needs no partner file.
 
 ## 5. Embedding
 
