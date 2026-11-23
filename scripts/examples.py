@@ -2,6 +2,10 @@
 
 Run with ``uv run python scripts/examples.py``. The figures show the parts of the style: a line
 chart with direct labels, bars with values and a reference line, a heatmap and a social card.
+
+``docs/examples/style`` shows the line chart in the example style of its ``tokens.json``, with a
+print theme. ``docs/readme`` holds the images that only the README shows: the bar chart in plain
+matplotlib and both themes of it side by side on their page colours.
 """
 
 from pathlib import Path
@@ -15,11 +19,17 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 from matplotlib.patches import FancyBboxPatch
+from PIL import Image
 
 import figkit
 from figkit import Theme
 
-OUT = Path(__file__).resolve().parents[1] / "docs" / "examples"
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "docs" / "examples"
+STYLE = OUT / "style"
+README = ROOT / "docs" / "readme"
+CLASSES = ["crazing", "inclusion", "patches", "pitted surface", "rolled-in scale", "scratches"]
+RECALL = [0.93, 0.81, 0.99, 0.88, 0.74, 0.96]
 
 
 def lines(theme: Theme) -> Figure:
@@ -46,11 +56,10 @@ def lines(theme: Theme) -> Figure:
 
 def bars(theme: Theme) -> Figure:
     """Recall per class with a target line."""
-    names = ["crazing", "inclusion", "patches", "pitted surface", "rolled-in scale", "scratches"]
-    recall = [0.93, 0.81, 0.99, 0.88, 0.74, 0.96]
+    names = CLASSES
     figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 3.2))
     y = np.arange(len(names))
-    container = ax.barh(y, recall, height=0.56, color=theme.series[0])
+    container = ax.barh(y, RECALL, height=0.56, color=theme.series[0])
     figkit.bar_labels(ax, container, theme, fmt="{:.0%}")
     figkit.reference_line(ax, 0.8, "target 80 %", theme, where=1.02)
     ax.set_yticks(y, names)
@@ -130,13 +139,51 @@ def card(theme: Theme) -> Figure:
     return figure
 
 
+def before(path: Path) -> Path:
+    """The bar chart as plain matplotlib draws it, without figkit."""
+    with plt.rc_context({"svg.hashsalt": "figkit"}):
+        figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 3.2))
+        ax.barh(CLASSES, RECALL)
+        ax.axvline(0.8)
+        ax.invert_yaxis()
+        ax.set_title("Recall per class")
+        figure.tight_layout()
+        figure.savefig(path, metadata={"Date": None})
+    plt.close(figure)
+    return path
+
+
+def modes(path: Path) -> Path:
+    """The light and the dark PNG of the bar chart side by side on their page colours."""
+    tiles = [
+        (Image.open(OUT / f"bars{suffix}.png").convert("RGBA"), theme.pages[0])
+        for suffix, theme in (("", figkit.LIGHT), ("-dark", figkit.DARK))
+    ]
+    width, height = tiles[0][0].size
+    pad = width // 20
+    sheet = Image.new("RGBA", (2 * (width + 2 * pad), height + 2 * pad))
+    for i, (tile, page) in enumerate(tiles):
+        panel = Image.new("RGBA", (width + 2 * pad, height + 2 * pad), page)
+        panel.alpha_composite(tile, (pad, pad))
+        sheet.paste(panel, (i * (width + 2 * pad), 0))
+    sheet = sheet.resize((sheet.width // 2, sheet.height // 2), Image.Resampling.LANCZOS)
+    sheet.convert("RGB").save(path, optimize=True)
+    return path
+
+
 def main() -> None:
-    """Write every example in both themes."""
+    """Write every example in both themes, the example style and the README images."""
     for name, draw in (("lines", lines), ("bars", bars), ("heatmap", heatmap)):
         for path in figkit.render(OUT, name, draw):
-            print(path.relative_to(OUT.parent.parent))
+            print(path.relative_to(ROOT))
     for path in figkit.render(OUT, "card", card, outputs=figkit.CARD):
-        print(path.relative_to(OUT.parent.parent))
+        print(path.relative_to(ROOT))
+    style = figkit.load_style(STYLE / "tokens.json")
+    for path in figkit.render(STYLE, "lines", lines, style=style):
+        print(path.relative_to(ROOT))
+    README.mkdir(parents=True, exist_ok=True)
+    print(before(README / "before.svg").relative_to(ROOT))
+    print(modes(README / "modes.png").relative_to(ROOT))
 
 
 if __name__ == "__main__":

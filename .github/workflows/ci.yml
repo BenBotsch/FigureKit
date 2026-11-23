@@ -24,9 +24,10 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest
       - run: uv run figkit check docs/examples
+      - run: uv run figkit check docs/examples/style --style docs/examples/style/tokens.json
       # The committed gallery must come out of the script unchanged on this platform.
       - run: uv run python scripts/examples.py
-      - run: git diff --exit-code -- "docs/examples/*.svg"
+      - run: git diff --exit-code -- "docs/examples/*.svg" "docs/readme/*.svg"
       # The wheel must hold the fonts, tokens and licences that src/ has.
       - run: uv build
       - run: bash scripts/check_package.sh
