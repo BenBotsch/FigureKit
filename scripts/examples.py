@@ -8,6 +8,7 @@ print theme. ``docs/readme`` holds the images that only the README shows: the ba
 matplotlib and both themes of it side by side on their page colours.
 """
 
+import io
 from pathlib import Path
 
 import matplotlib
@@ -148,7 +149,9 @@ def before(path: Path) -> Path:
         ax.invert_yaxis()
         ax.set_title("Recall per class")
         figure.tight_layout()
-        figure.savefig(path, metadata={"Date": None})
+        buffer = io.BytesIO()  # A path would get CRLF line ends on Windows.
+        figure.savefig(buffer, format="svg", metadata={"Date": None})
+        path.write_bytes(buffer.getvalue())
     plt.close(figure)
     return path
 
