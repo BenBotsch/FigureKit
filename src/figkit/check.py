@@ -13,7 +13,7 @@ from PIL import Image
 
 from figkit import manifest
 from figkit.export import RASTER_DPI, WEB_WIDTH
-from figkit.theme import tokens
+from figkit.theme import CSS_TOKENS, tokens
 
 FORMATS = (".svg", ".png", ".webp")
 # Bytes. Above these, a chart usually embeds a raster or far too many points.
@@ -25,15 +25,6 @@ _BACKGROUND = re.compile(r'<g id="patch_1">\s*<path[^>]*style="([^"]*)"')
 _SVG_WIDTH = re.compile(r'<svg[^>]* width="([\d.]+)pt"')
 # ``failure-modes.de`` is the German file of ``failure-modes``.
 _LANGUAGE = re.compile(r"^(?P<name>.+)\.(?P<language>[a-z]{2})$")
-# Portfolio custom property and the figure token it equals in both themes: (key, list index).
-CSS_TOKENS: dict[str, tuple[str, int | None]] = {
-    "bg": ("pages", 0),
-    "surface": ("surface", None),
-    "text": ("ink", None),
-    "muted": ("secondary", None),
-    "border": ("grid", None),
-    "border-strong": ("muted", None),
-}
 _CSS_COLOUR = re.compile(
     r"--color-([\w-]+):\s*light-dark\(\s*(#[0-9a-fA-F]{6})\s*,\s*(#[0-9a-fA-F]{6})"
 )

@@ -44,7 +44,7 @@ def problems_of_install() -> list[str]:
     if "site-packages" not in package.parts:
         return [f"figkit was imported from {package}, not from an installed wheel"]
     found = []
-    for name in ("py.typed", "tokens.json"):
+    for name in ("py.typed", "tokens.json", "tokens.schema.json"):
         if not (package / name).is_file():
             found.append(f"the wheel lacks figkit/{name}")
     if not list((package / "fonts").glob("*.ttf")):

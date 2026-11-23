@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BenBotsch/FigureKit/blob/main/src/figkit/tokens.schema.json",
+  "title": "figkit tokens",
+  "description": "Colours and type of a figkit style, version 2. figkit.load_style checks the same rules and also that font files exist and paired themes point at each other.",
+  "type": "object",
+  "required": ["version", "font", "themes"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "$comment": {"type": "string"},
+    "version": {"const": 2},
+    "default": {"type": "string", "description": "Theme for a single file, such as light."},
+    "font": {
+      "type": "object",
+      "required": ["sans", "mono", "size", "title", "label", "tick", "annotation", "minimum"],
+      "additionalProperties": false,
+      "properties": {
+        "$comment": {"type": "string"},
+        "sans": {"type": "string", "minLength": 1},
+        "mono": {"type": "string", "minLength": 1},
+        "size": {"$ref": "#/$defs/pt"},
+        "title": {"$ref": "#/$defs/pt"},
+        "label": {"$ref": "#/$defs/pt"},
+        "tick": {"$ref": "#/$defs/pt"},
+        "annotation": {"$ref": "#/$defs/pt"},
+        "minimum": {"$ref": "#/$defs/pt"},
+        "files": {
+          "type": "array",
+          "description": "Glob patterns of the font files, relative to the tokens file. Without them figkit uses its bundled fonts.",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "themes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/theme"}
+    },
+    "css": {
+      "type": "object",
+      "description": "Custom properties of the website's stylesheet and the token each equals.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "array",
+            "prefixItems": [{"enum": ["surface", "ink", "secondary", "muted", "grid", "axis"]}],
+            "minItems": 1,
+            "maxItems": 1
+          },
+          {
+            "type": "array",
+            "prefixItems": [{"enum": ["pages", "series", "ramp"]}, {"type": "integer", "minimum": 0}],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "pt": {"type": "number", "exclusiveMinimum": 0},
+    "colour": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+    "colours": {"type": "array", "items": {"$ref": "#/$defs/colour"}},
+    "theme": {
+      "type": "object",
+      "required": ["surface", "pages", "ink", "secondary", "muted", "grid", "axis", "series", "ramp", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "$comment": {"type": "string"},
+        "pair": {"type": "string", "description": "Theme a page swaps this one with, such as dark for light."},
+        "surface": {"$ref": "#/$defs/colour"},
+        "pages": {"$ref": "#/$defs/colours", "minItems": 1},
+        "ink": {"$ref": "#/$defs/colour"},
+        "secondary": {"$ref": "#/$defs/colour"},
+        "muted": {"$ref": "#/$defs/colour"},
+        "grid": {"$ref": "#/$defs/colour"},
+        "axis": {"$ref": "#/$defs/colour"},
+        "series": {"$ref": "#/$defs/colours", "minItems": 1},
+        "ramp": {"$ref": "#/$defs/colours", "minItems": 2},
+        "status": {
+          "type": "object",
+          "required": ["good", "warning", "serious", "critical"],
+          "additionalProperties": false,
+          "properties": {
+            "good": {"$ref": "#/$defs/colour"},
+            "warning": {"$ref": "#/$defs/colour"},
+            "serious": {"$ref": "#/$defs/colour"},
+            "critical": {"$ref": "#/$defs/colour"}
+          }
+        }
+      }
+    }
+  }
+}
