@@ -245,3 +245,12 @@ def test_check_tokens_compares_the_page_colours(
     ]
     assert main(["check", "--tokens", str(css)]) == 1
     assert "--color-text" in capsys.readouterr().err
+
+
+def test_cli_reports_a_missing_stylesheet(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    css = tmp_path / "absent.css"
+
+    assert main(["check", "--css", str(css)]) == 1
+    assert f"{css}: cannot be read" in capsys.readouterr().err

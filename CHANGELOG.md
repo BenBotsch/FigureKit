@@ -28,6 +28,13 @@ section of that version.
   give the same style. A version 2 file without `css` names no properties for `check --css`.
 - `mono()` and `mono_ticks()` accept a theme and use its mono family.
 
+### Fixed
+
+- A tokens file of version 1 defaults to `light` even when `dark` comes first in it.
+- A `css` index beyond a list token and an absolute pattern in `font.files` are a `StyleError`
+  instead of a crash in `check_tokens` or `load_style`.
+- `figkit check --css` reports a stylesheet it cannot read instead of failing with a traceback.
+
 ## [0.3.1] - 2026-11-19
 
 ### Added

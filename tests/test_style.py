@@ -319,3 +319,30 @@ def test_ink_on_takes_the_darkest_ink_of_the_style() -> None:
     assert figkit.ink_on("#ffffff") == figkit.LIGHT.ink
     assert figkit.ink_on("#ffffff", style) == "#000000"
     assert figkit.ink_on("#000000", style) == "#ffffff"
+
+
+def test_version_1_defaults_to_light_whatever_the_order() -> None:
+    data = version_1()
+    data["themes"] = {"dark": data["themes"]["dark"], "light": data["themes"]["light"]}
+
+    style = figkit.parse_style(data)
+
+    assert style.default == "light"
+    assert style.suffix("dark") == "-dark"
+    assert style.suffix("light") == ""
+
+
+def test_a_css_index_beyond_a_list_is_rejected() -> None:
+    data = bundled()
+    data["css"]["bg"] = ["pages", 9]
+
+    assert "css.bg: themes.light.pages has no entry 9" in problems(data)
+    assert "css.bg: themes.dark.pages has no entry 9" in problems(data)
+
+
+def test_an_absolute_font_pattern_is_a_style_error(tmp_path: Path) -> None:
+    data = bundled()
+    pattern = str(tmp_path / "*.ttf")
+    data["font"]["files"] = [pattern]
+
+    assert f"font.files: {pattern!r} must be relative to the tokens file" in problems(data)

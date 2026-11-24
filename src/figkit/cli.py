@@ -64,7 +64,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     failed = False
     if css is not None:
-        problems = check_tokens(css, style)
+        try:
+            problems = check_tokens(css, style)
+        except OSError as error:
+            problems = [f"{css}: cannot be read, {error.strerror or error}"]
         for problem in problems:
             print(problem, file=sys.stderr)
         failed = bool(problems)

@@ -239,7 +239,8 @@ def parse_style(data: object, *, base: Path | None = None, source: Path | None =
         }
     return Style(
         themes=themes,
-        default=raw.get("default", themes[0].name),
+        # Version 1 always meant light as the default, whatever the order of its themes.
+        default=raw.get("default", "light" if raw.get("version", 1) == 1 else themes[0].name),
         pairs=MappingProxyType(pairs),
         css=MappingProxyType(css),
         source=source,
@@ -283,7 +284,7 @@ def _problems(data: object) -> list[str]:
     if default is not None and default not in themes:
         problems.append(f"default: {default!r} is not a theme")
     if "css" in data:
-        problems += _css_problems(data["css"])
+        problems += _css_problems(data["css"], themes)
     return problems
 
 
@@ -313,6 +314,13 @@ def _font_problems(font: object) -> list[str]:
     files = font.get("files", [])
     if not isinstance(files, list) or not all(isinstance(f, str) and f for f in files):
         problems.append("font.files: must be a list of glob patterns")
+    else:
+        # Path.glob accepts only relative patterns; an anchored one would raise instead.
+        problems += [
+            f"font.files: {f!r} must be relative to the tokens file"
+            for f in files
+            if Path(f).anchor or Path(f).is_absolute()
+        ]
     return problems
 
 
@@ -358,7 +366,7 @@ def _pair_problems(
     return []
 
 
-def _css_problems(css: object) -> list[str]:
+def _css_problems(css: object, themes: Mapping[str, Any]) -> list[str]:
     if not isinstance(css, dict):
         return ["css: must be an object"]
     problems = []
@@ -374,6 +382,17 @@ def _css_problems(css: object) -> list[str]:
         )
         if not (single or indexed):
             problems.append(f"css.{prop}: must be [colour token] or [list token, index]")
+            continue
+        if indexed:
+            key, index = target
+            # Every theme must hold the entry, or check_tokens would fail on the missing one.
+            problems += [
+                f"css.{prop}: themes.{name}.{key} has no entry {index}"
+                for name, raw in themes.items()
+                if isinstance(raw, dict)
+                and isinstance(raw.get(key), list)
+                and index >= len(raw[key])
+            ]
     return problems
 
 
