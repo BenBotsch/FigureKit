@@ -878,7 +878,7 @@ L 325.831579 78.741557
 L 344.308318 77.276631 
 L 362.785058 76.036598 
 L 381.261797 74.986932 
-" clip-path="url(#p69a5ff6bab)" style="fill: none; stroke: #b4387a; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#p69a5ff6bab)" style="fill: none; stroke: #5b6ee1; stroke-width: 2; stroke-linecap: round"/>
    </g>
    <g id="line2d_24">
     <path d="M 30.20375 206.532 
@@ -901,7 +901,7 @@ L 325.831579 53.21018
 L 344.308318 52.577422 
 L 362.785058 52.08463 
 L 381.261797 51.700843 
-" clip-path="url(#p69a5ff6bab)" style="fill: none; stroke: #5b6ee1; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#p69a5ff6bab)" style="fill: none; stroke: #c07a00; stroke-width: 2; stroke-linecap: round"/>
    </g>
    <g id="patch_3">
     <path d="M 30.20375 219.996 
@@ -1726,7 +1726,7 @@ L 175.853672 19.62
      <path d="M 233.245547 19.62 
 L 239.545547 19.62 
 L 245.845547 19.62 
-" style="fill: none; stroke: #b4387a; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke: #5b6ee1; stroke-width: 2; stroke-linecap: round"/>
     </g>
     <g id="text_20">
      <!-- HOG + SVM -->
@@ -1746,7 +1746,7 @@ L 245.845547 19.62
      <path d="M 311.555391 19.62 
 L 317.855391 19.62 
 L 324.155391 19.62 
-" style="fill: none; stroke: #5b6ee1; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke: #c07a00; stroke-width: 2; stroke-linecap: round"/>
     </g>
     <g id="text_21">
      <!-- MobileNet -->

@@ -5,6 +5,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from figkit.access import check_style
 from figkit.check import check, check_tokens
 from figkit.export import WEB_WIDTH
 from figkit.preview import preview
@@ -36,6 +37,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--any-width",
         action="store_true",
         help="do not require the fixed canvas width of web figures",
+    )
+    checker.add_argument(
+        "--a11y",
+        action="store_true",
+        help="check the contrast of text, the colour-blind separation of series and the ramp",
     )
     checker.add_argument(
         "--css",
@@ -121,6 +127,15 @@ def _preview(directory: Path, tokens: Path | None) -> int:
     return 0
 
 
+def _report(problems: list[str], passed: str) -> bool:
+    """Print the problems, or ``passed`` without any; return whether there were problems."""
+    for problem in problems:
+        print(problem, file=sys.stderr)
+    if not problems:
+        print(passed)
+    return bool(problems)
+
+
 def _check(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
     try:
         settings = project()
@@ -129,20 +144,19 @@ def _check(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
         print(error, file=sys.stderr)
         return 1
     css = args.css or settings.css
-    if not args.directories and css is None:
-        parser.error("check needs a directory, --css or css in [tool.figkit]")
+    if not args.directories and css is None and not args.a11y:
+        parser.error("check needs a directory, --a11y, --css or css in [tool.figkit]")
 
     failed = False
+    if args.a11y:
+        label = str(style.source) if style.source is not None else "bundled style"
+        failed = _report([f"{label}: {p}" for p in check_style(style)], f"{label}: accessible")
     if css is not None:
         try:
             problems = check_tokens(css, style)
         except OSError as error:
             problems = [f"{css}: cannot be read, {error.strerror or error}"]
-        for problem in problems:
-            print(problem, file=sys.stderr)
-        failed = bool(problems)
-        if not problems:
-            print(f"{css}: ok")
+        failed = _report(problems, f"{css}: ok") or failed
     for directory in args.directories:
         if not directory.is_dir():
             print(f"{directory}: not a directory", file=sys.stderr)

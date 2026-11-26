@@ -44,6 +44,11 @@ node validate_palette.js "#5b84ea,#d95926,#199e70,#c98500" --mode dark --surface
 Text colours are tested in `tests/test_figkit.py`. Against every page, ink reaches at least 7:1,
 secondary at least 4.5:1 and muted at least 3:1.
 
+`figkit check --a11y` checks these rules for any style, with the floors of the validator: text
+4.5:1 and muted 3:1 on every page, neighbouring series at least 6 apart (OKLab ×100) with
+protanopia and deuteranopia and 15 apart in normal vision, and ramp steps at least 0.06 apart in
+OKLCH lightness. Series below 3:1 against the page stay allowed, see above.
+
 ## 3. Type and layout
 
 - Bricolage Grotesque for text, JetBrains Mono for numbers and identifiers (`figkit.value`,

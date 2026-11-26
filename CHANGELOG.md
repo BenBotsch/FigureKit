@@ -18,6 +18,16 @@ section of that version.
   `small_multiples` lays out panels on the canvas width with shared axes and `ramp_cmap` turns
   the ramp of a theme into a colormap.
 - The gallery shows small multiples with bands and a callout.
+- `figkit check --a11y` checks the colours of the style: text contrast after WCAG, the
+  separation of neighbouring series with protanopia, deuteranopia and normal vision, and the
+  steps of the ramp. It runs without a directory as well.
+
+### Changed
+
+- The dark ramp of the bundled style is stepped evenly in lightness. Three middle steps were
+  less than 0.06 apart; dark heatmaps and the tiles of the dark card change their blues.
+- The example style in `docs/examples/style` orders its series teal, blue, amber, magenta, so
+  that neighbours stay apart with deuteranopia.
 
 ## [0.4.0] - 2026-11-26
 

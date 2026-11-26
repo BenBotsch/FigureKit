@@ -263,7 +263,7 @@ other series colours and a `print` theme; the same line chart in it:
   <tr>
     <td width="50%"><picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/examples/style/lines-dark.svg">
-      <img src="docs/examples/style/lines.svg" alt="The line chart in the example style with teal, magenta and blue lines.">
+      <img src="docs/examples/style/lines.svg" alt="The line chart in the example style with teal, blue and amber lines.">
     </picture></td>
     <td width="50%"><img src="docs/examples/style/lines-print.png" alt="The line chart in the print theme of the example style, in black and greys."></td>
   </tr>
@@ -324,7 +324,7 @@ figure uses it.
 ## Command line
 
 ```sh
-figkit check [DIRECTORY ...] [--css CSS] [--style TOKENS] [--opaque NAME] [--any-width]
+figkit check [DIRECTORY ...] [--a11y] [--css CSS] [--style TOKENS] [--opaque NAME] [--any-width]
 figkit init [--tokens TOKENS] [--css CSS]
 figkit style preview [DIRECTORY] [--style TOKENS]
 ```
@@ -344,6 +344,7 @@ the minimum size of the style fails the preview.
 | `--style TOKENS` | Style that wrote the figures; overrides `[tool.figkit]`. |
 | `--opaque NAME` | Figure that is opaque on purpose; repeatable, default `card`. |
 | `--any-width` | Does not require the fixed canvas width of web figures. |
+| `--a11y` | Checks the colours of the style: text contrast (WCAG), the separation of neighbouring series under protanopia, deuteranopia and normal vision, and an evenly stepped ramp. Works without a directory. |
 
 The exit code is 1 on any problem:
 
