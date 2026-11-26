@@ -147,12 +147,33 @@ figkit.line_labels(ax, ends, theme)  # moves labels apart where lines end close 
 </picture>
 
 ```python
-cmap = LinearSegmentedColormap.from_list(f"ramp-{theme.name}", theme.ramp)
+cmap = figkit.ramp_cmap(theme)
 ax.imshow(rates, cmap=cmap, vmin=0, vmax=1)
 for (i, j), count in np.ndenumerate(counts):
     cell = figkit.hex_colour(cmap(rates[i, j]))
     figkit.value(ax, j, i, str(count), theme, ha="center", va="center", color=figkit.ink_on(cell))
 ```
+
+</details>
+
+<details>
+<summary><b>Small multiples</b> with shared axes, confidence bands and a callout</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/examples/multiples-dark.svg">
+  <img src="docs/examples/multiples.svg" alt="Three panels of learning curves, macro F1 against training images, each line with a shaded band; the middle one points out its plateau.">
+</picture>
+
+```python
+figure, panels = figkit.small_multiples(3, height=2.2)  # inner panels drop shared tick labels
+for slot, (ax, (name, mean, spread)) in enumerate(zip(panels, curves)):
+    ax.plot(sizes, mean, color=theme.series[slot], marker="o", markersize=3)
+    figkit.band(ax, sizes, mean - spread, mean + spread, theme, slot=slot)
+figkit.callout(panels[1], "plateau", (3200, plateau), (-22, -22), theme)
+```
+
+`figkit.error_bars(ax, x, y, error, theme)` draws thin bars without caps in the secondary ink
+for points instead of lines.
 
 </details>
 
@@ -342,7 +363,7 @@ $ uv run figkit check --css ../Portfolio/src/styles/tokens.css
 | --- | --- |
 | Render | `render`, `page`, `page_entry`, `write_manifest`, `save`, `path_for`, `canvas`, `styled`, `headless` |
 | Outputs | `WEB`, `PHOTO`, `CARD`, `SVG`, `PNG`, `WEB_WIDTH`, `CARD_INCHES`, `RASTER_DPI` |
-| Helpers | `title`, `legend_top`, `grid`, `percent`, `category_axis`, `mono`, `mono_ticks`, `value`, `bar_labels`, `reference_line`, `line_labels`, `ink_on`, `hex_colour` |
+| Helpers | `title`, `legend_top`, `grid`, `percent`, `category_axis`, `mono`, `mono_ticks`, `value`, `bar_labels`, `reference_line`, `line_labels`, `band`, `error_bars`, `callout`, `small_multiples`, `ramp_cmap`, `ink_on`, `hex_colour` |
 | Languages | `Caption`, `language`, `localize`, `number` |
 | Style | `Theme`, `Typography`, `Style`, `StyleError`, `load_style`, `parse_style`, `DEFAULT`, `LIGHT`, `DARK`, `THEMES`, `TYPE`, `tokens`, `rc`, `register_fonts` |
 | Project | `Project`, `project`, `project_style` |

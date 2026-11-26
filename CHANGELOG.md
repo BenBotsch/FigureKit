@@ -13,6 +13,11 @@ section of that version.
   existing table stops the command.
 - `figkit style preview` renders a specimen of every series, ramp and status colour in each
   theme of the project style or of `--style`.
+- Chart helpers: `band` shades an interval such as a confidence band in the colour of its
+  series, `error_bars` draws thin bars without caps, `callout` points at a value with an arrow,
+  `small_multiples` lays out panels on the canvas width with shared axes and `ramp_cmap` turns
+  the ramp of a theme into a colormap.
+- The gallery shows small multiples with bands and a callout.
 
 ## [0.4.0] - 2026-11-26
 

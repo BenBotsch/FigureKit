@@ -392,3 +392,86 @@ def test_render_uses_the_minimum_of_the_theme(tmp_path: Path) -> None:
     figkit.render(tmp_path, "ok", chart, (figkit.SVG,), (figkit.LIGHT,))
     with pytest.raises(ValueError, match="minimum is 9"):
         figkit.render(tmp_path, "strict", chart, (figkit.SVG,), (strict,))
+
+
+def test_ramp_cmap_runs_from_the_first_to_the_last_ramp_colour() -> None:
+    cmap = figkit.ramp_cmap(figkit.DARK)
+
+    assert figkit.hex_colour(cmap(0.0)) == figkit.DARK.ramp[0]
+    assert figkit.hex_colour(cmap(1.0)) == figkit.DARK.ramp[-1]
+
+
+def test_band_lies_behind_its_line_in_the_series_colour() -> None:
+    figure, ax = plt.subplots()
+    (line,) = ax.plot([0, 1, 2], [1, 2, 3], color=figkit.LIGHT.series[1])
+    shade = figkit.band(ax, [0, 1, 2], [0, 1, 2], [2, 3, 4], figkit.LIGHT, slot=1)
+
+    assert (
+        figkit.hex_colour(list(np.asarray(shade.get_facecolor())[0, :3])) == figkit.LIGHT.series[1]
+    )
+    assert shade.get_alpha() == 0.2
+    assert shade.get_zorder() < line.get_zorder()
+    plt.close(figure)
+
+
+def test_error_bars_are_thin_lines_in_secondary_ink_without_caps() -> None:
+    figure, ax = plt.subplots()
+    bars = figkit.error_bars(ax, [0, 1], [1, 2], [[0.1, 0.2], [0.3, 0.4]], figkit.DARK, axis="x")
+
+    data_line, caps, (lines,) = bars.lines
+    assert data_line is None and not caps
+    assert figkit.hex_colour(lines.get_colors()[0]) == figkit.DARK.secondary
+    # Horizontal bars span x - lower to x + upper.
+    ends = np.array([segment[:, 0] for segment in lines.get_segments()])
+    assert ends == pytest.approx(np.array([[-0.1, 0.3], [0.8, 1.4]]))
+    plt.close(figure)
+
+
+def test_callout_points_at_its_target_from_an_offset() -> None:
+    figure, ax = plt.subplots()
+    note = figkit.callout(ax, "outlier", (2, 3), (-20, 15), figkit.LIGHT)
+
+    assert note.xy == (2, 3)
+    assert note.xyann == (-20, 15)
+    assert (note.get_horizontalalignment(), note.get_verticalalignment()) == ("right", "bottom")
+    assert note.get_color() == figkit.LIGHT.secondary
+    assert note.get_fontsize() == figkit.LIGHT.type.annotation
+    assert note.arrow_patch is not None
+    plt.close(figure)
+
+
+def test_small_multiples_share_axes_and_label_only_the_outer_panels() -> None:
+    figure, panels = figkit.small_multiples(5, columns=3, height=1.5)
+
+    assert len(panels) == 5 and len(figure.axes) == 5
+    assert tuple(figure.get_size_inches()) == pytest.approx((figkit.WEB_WIDTH, 3.0))
+    panels[0].set_ylim(0, 7)
+    assert panels[4].get_ylim() == (0, 7)
+
+    # Panel 2 has no panel below it, so it keeps its x labels.
+    x_labels = [ax.xaxis.get_major_ticks()[0].label1.get_visible() for ax in panels]
+    y_labels = [ax.yaxis.get_major_ticks()[0].label1.get_visible() for ax in panels]
+    assert x_labels == [False, False, True, True, True]
+    assert y_labels == [True, False, False, True, False]
+    plt.close(figure)
+
+
+def test_small_multiples_need_a_panel() -> None:
+    with pytest.raises(ValueError, match="at least one panel"):
+        figkit.small_multiples(0)
+
+
+def test_new_helpers_render_within_the_canvas(tmp_path: Path) -> None:
+    def draw(theme: figkit.Theme) -> Figure:
+        figure, panels = figkit.small_multiples(3)
+        x = np.arange(5)
+        for slot, ax in enumerate(panels):
+            ax.plot(x, x * 0.1, color=theme.series[slot])
+            figkit.band(ax, x, x * 0.1 - 0.05, x * 0.1 + 0.05, theme, slot=slot)
+            figkit.error_bars(ax, x, x * 0.1, 0.03, theme)
+        figkit.callout(panels[0], "start", (0, 0), (15, 15), theme)
+        return figure
+
+    paths = figkit.render(tmp_path, "multiples", draw)
+    assert len(paths) == 4
+    assert check(tmp_path) == []

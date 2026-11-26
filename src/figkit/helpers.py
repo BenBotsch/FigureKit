@@ -3,13 +3,18 @@
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal
 
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.container import BarContainer
+from matplotlib.collections import PolyCollection
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.container import BarContainer, ErrorbarContainer
+from matplotlib.figure import Figure
 from matplotlib.legend import Legend
 from matplotlib.text import Annotation, Text
 from matplotlib.ticker import PercentFormatter
 
+from figkit.export import WEB_WIDTH
 from figkit.language import headless, localize
 from figkit.theme import DEFAULT, TYPE, Style, Theme
 
@@ -256,3 +261,144 @@ def _spread(wanted: Sequence[float], spacing: float) -> list[float]:
 def _start(group: Sequence[int], wanted: Sequence[float], spacing: float) -> float:
     centre = sum(wanted[i] for i in group) / len(group)
     return centre - (len(group) - 1) * spacing / 2
+
+
+def ramp_cmap(theme: Theme) -> LinearSegmentedColormap:
+    """Colormap of the sequential ramp of ``theme``, from low to high, for heatmaps.
+
+    Pair it with :func:`ink_on` and :func:`hex_colour` for values on the cells.
+    """
+    return LinearSegmentedColormap.from_list(f"ramp-{theme.name}", theme.ramp)
+
+
+def band(
+    ax: Axes,
+    x: Sequence[float] | np.ndarray[Any, Any],
+    low: Sequence[float] | np.ndarray[Any, Any],
+    high: Sequence[float] | np.ndarray[Any, Any],
+    theme: Theme,
+    *,
+    slot: int = 0,
+    opacity: float = 0.2,
+) -> PolyCollection:
+    """Shaded interval around a line, such as a confidence band, in the colour of series ``slot``.
+
+    The band has no edge and lies behind the lines, so the line of the same series stays on top.
+    """
+    return ax.fill_between(
+        x, low, high, color=theme.series[slot], alpha=opacity, linewidth=0, zorder=1
+    )
+
+
+def error_bars(
+    ax: Axes,
+    x: Sequence[float] | np.ndarray[Any, Any],
+    y: Sequence[float] | np.ndarray[Any, Any],
+    error: Any,
+    theme: Theme,
+    *,
+    axis: Axis = "y",
+    colour: str | None = None,
+) -> ErrorbarContainer:
+    """Thin error bars without caps at the points ``(x, y)``, without markers or a line.
+
+    ``error`` is what :meth:`~matplotlib.axes.Axes.errorbar` takes: one value, one per point or
+    a ``(2, n)`` pair of lower and upper distances. ``axis`` is the direction of the bars. The
+    colour is the secondary ink, so the bars read as a measure of the marks and not as marks.
+    """
+    spread = {"yerr" if axis == "y" else "xerr": error}
+    return ax.errorbar(
+        x,
+        y,
+        **spread,
+        fmt="none",
+        ecolor=colour or theme.secondary,
+        elinewidth=1,
+        capsize=0,
+        zorder=3,
+    )
+
+
+def callout(
+    ax: Axes,
+    text: str,
+    xy: tuple[float, float],
+    offset: tuple[float, float],
+    theme: Theme,
+    **kwargs: Any,
+) -> Annotation:
+    """A note that points at ``xy`` with a thin arrow, for an outlier or an event.
+
+    ``offset`` places the text relative to the point in points, such as ``(30, 20)`` for up and
+    to the right, so the note keeps its distance whatever the axis limits are.
+    """
+    dx, dy = offset
+    options: dict[str, Any] = {
+        "xytext": offset,
+        "textcoords": "offset points",
+        "ha": "left" if dx >= 0 else "right",
+        "va": "bottom" if dy >= 0 else "top",
+        "fontsize": theme.type.annotation,
+        "color": theme.secondary,
+        "arrowprops": {
+            "arrowstyle": "-|>",
+            "color": theme.muted,
+            "linewidth": 0.8,
+            "shrinkA": 2,
+            "shrinkB": 3,
+            "mutation_scale": 7,
+        },
+        "annotation_clip": False,
+    }
+    return ax.annotate(text, xy, **(options | kwargs))
+
+
+def small_multiples(
+    count: int,
+    *,
+    columns: int = 3,
+    height: float = 1.8,
+    sharex: bool = True,
+    sharey: bool = True,
+) -> tuple[Figure, list[Axes]]:
+    """A grid of ``count`` small charts on the full canvas width that share their axes.
+
+    Shared axes make the panels comparable at a glance. Inner panels keep their ticks but not
+    their tick labels, and cells beyond ``count`` are removed.
+
+    Args:
+        count: Number of panels.
+        columns: Panels per row, fewer when ``count`` is smaller.
+        height: Height of one row in inches.
+        sharex: Share the x axis between all panels.
+        sharey: Share the y axis between all panels.
+
+    Returns:
+        The figure and its ``count`` axes, row by row.
+
+    Raises:
+        ValueError: If ``count`` or ``columns`` is less than 1.
+    """
+    if count < 1 or columns < 1:
+        msg = f"small_multiples needs at least one panel and column, got {count} and {columns}"
+        raise ValueError(msg)
+    columns = min(columns, count)
+    rows = -(-count // columns)
+    figure, grid_ = plt.subplots(
+        rows,
+        columns,
+        figsize=(WEB_WIDTH, height * rows),
+        sharex=sharex,
+        sharey=sharey,
+        squeeze=False,
+    )
+    cells = list(grid_.flat)
+    for spare in cells[count:]:
+        spare.remove()
+    panels = cells[:count]
+    for index, ax in enumerate(panels):
+        # Set both sides explicitly: subplots hides the x labels of every row but the last,
+        # yet the last panel of a column keeps them when the row below it is short.
+        ax.tick_params(axis="x", labelbottom=not (sharex and index + columns < count))
+        ax.tick_params(axis="y", labelleft=not (sharey and index % columns))
+    return figure, panels

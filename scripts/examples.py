@@ -1,7 +1,8 @@
 """Render the example gallery in ``docs/examples`` from invented data.
 
 Run with ``uv run python scripts/examples.py``. The figures show the parts of the style: a line
-chart with direct labels, bars with values and a reference line, a heatmap and a social card.
+chart with direct labels, bars with values and a reference line, a heatmap, small multiples
+with confidence bands and a social card.
 
 ``docs/examples/style`` shows the line chart in the example style of its ``tokens.json``, with a
 print theme. ``docs/readme`` holds the images that only the README shows: the bar chart in plain
@@ -17,7 +18,6 @@ matplotlib.use("Agg")  # The script only writes files.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 from matplotlib.patches import FancyBboxPatch
 from PIL import Image
@@ -80,7 +80,7 @@ def heatmap(theme: Theme) -> Figure:
         1 - np.eye(6, dtype=int)
     )
     rates = counts / counts.sum(axis=1, keepdims=True)
-    cmap = LinearSegmentedColormap.from_list(f"ramp-{theme.name}", theme.ramp)
+    cmap = figkit.ramp_cmap(theme)
     names = ["Cr", "In", "Pa", "PS", "RS", "Sc"]
     figure, ax = plt.subplots(figsize=(3.8, 3.6))
     ax.imshow(rates, cmap=cmap, vmin=0, vmax=1)
@@ -103,6 +103,31 @@ def heatmap(theme: Theme) -> Figure:
     ax.set_xlabel("predicted")
     ax.set_ylabel("true")
     figkit.title(ax, "Confusion matrix", theme)
+    return figure
+
+
+def multiples(theme: Theme) -> Figure:
+    """Learning curves of three models, the mean of five seeds with a band of their spread."""
+    rng = np.random.default_rng(1)
+    sizes = np.array([100, 200, 400, 800, 1600, 3200])
+    figure, panels = figkit.small_multiples(3, height=2.2)
+    for slot, (ax, (name, end)) in enumerate(
+        zip(panels, (("ResNet18", 0.96), ("HOG + SVM", 0.84), ("MobileNet", 0.92)), strict=True)
+    ):
+        mean = end - (end - 0.4) * np.exp(-np.log2(sizes / 100) / 1.6)
+        spread = 0.08 * np.exp(-np.log2(sizes / 100) / 2.5) + rng.uniform(0, 0.01, sizes.size)
+        ax.plot(sizes, mean, color=theme.series[slot], marker="o", markersize=3)
+        figkit.band(ax, sizes, mean - spread, mean + spread, theme, slot=slot)
+        ax.set_xscale("log", base=2)
+        ax.set_xticks([100, 400, 1600], ["100", "400", "1600"])
+        ax.minorticks_off()
+        ax.set_title(name, fontsize=theme.type.label, loc="left")
+        figkit.grid(ax, "y")
+    panels[0].set_ylim(0.3, 1.0)
+    panels[0].set_ylabel("macro F1")
+    panels[1].set_xlabel("training images")
+    plateau = float(np.asarray(panels[1].lines[0].get_ydata())[-1])
+    figkit.callout(panels[1], "plateau", (3200, plateau), (-22, -22), theme)
     return figure
 
 
@@ -176,7 +201,12 @@ def modes(path: Path) -> Path:
 
 def main() -> None:
     """Write every example in both themes, the example style and the README images."""
-    for name, draw in (("lines", lines), ("bars", bars), ("heatmap", heatmap)):
+    for name, draw in (
+        ("lines", lines),
+        ("bars", bars),
+        ("heatmap", heatmap),
+        ("multiples", multiples),
+    ):
         for path in figkit.render(OUT, name, draw):
             print(path.relative_to(ROOT))
     for path in figkit.render(OUT, "card", card, outputs=figkit.CARD):
