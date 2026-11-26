@@ -62,7 +62,7 @@ or check in CI that every pair exists and the colours match the stylesheet of th
 **1. Install** with a pinned tag, so a style change reaches a project only when it updates the tag:
 
 ```sh
-uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.3.1"
+uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.4.0"
 ```
 
 **2. Draw** a figure as a function of the theme and let `render` write it:
