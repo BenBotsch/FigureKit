@@ -6,6 +6,8 @@ section of that version.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-26
+
 ### Added
 
 - `figkit init` copies the bundled tokens and their schema into a project and appends
@@ -164,7 +166,8 @@ section of that version.
   label of a vertical reference line goes on either side.
 - `figkit check` for light/dark pairs, transparency and file sizes.
 
-[Unreleased]: https://github.com/BenBotsch/FigureKit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/BenBotsch/FigureKit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/BenBotsch/FigureKit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BenBotsch/FigureKit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/BenBotsch/FigureKit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/BenBotsch/FigureKit/compare/v0.2.1...v0.3.0
