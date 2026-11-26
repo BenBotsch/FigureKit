@@ -19,6 +19,7 @@ FONTS = Path(str(resources.files("figkit") / "fonts"))
 
 
 TOKENS = Path(str(resources.files("figkit") / "tokens.json"))
+SCHEMA = Path(str(resources.files("figkit") / "tokens.schema.json"))
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 _COLOURS = ("surface", "ink", "secondary", "muted", "grid", "axis")
 _LISTS = ("pages", "series", "ramp")

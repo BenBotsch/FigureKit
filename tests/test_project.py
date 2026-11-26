@@ -6,7 +6,9 @@ import pytest
 from matplotlib.figure import Figure
 
 import figkit
+from figkit.check import check
 from figkit.cli import main
+from figkit.project import init
 
 
 def tokens_with_print(path: Path) -> Path:
@@ -112,3 +114,86 @@ def test_check_compares_the_css_of_the_project(
     with pytest.raises(SystemExit):
         main(["check"])
     assert "css in [tool.figkit]" in capsys.readouterr().err
+
+
+def test_init_copies_the_style_and_names_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "pyproject.toml").write_bytes(b"[project]\r\nname = 'x'")
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["init", "--css", "site/tokens.css"]) == 0
+
+    settings = figkit.project(tmp_path)
+    assert settings.tokens == tmp_path / "figures" / "tokens.json"
+    assert settings.css == tmp_path / "site" / "tokens.css"
+    assert settings.style().themes == figkit.DEFAULT.themes
+    assert (tmp_path / "figures" / "tokens.schema.json").is_file()
+    # The table keeps the line ends of the file.
+    assert (
+        (tmp_path / "pyproject.toml")
+        .read_bytes()
+        .endswith(
+            b"name = 'x'\r\n\r\n[tool.figkit]\r\n"
+            b'tokens = "figures/tokens.json"\r\ncss = "site/tokens.css"\r\n'
+        )
+    )
+    assert "pyproject.toml: written" in capsys.readouterr().out
+
+    before = (tmp_path / "pyproject.toml").read_bytes()
+    assert main(["init"]) == 1
+    assert "[tool.figkit] exists already" in capsys.readouterr().err
+    assert (tmp_path / "pyproject.toml").read_bytes() == before
+
+
+def test_init_keeps_an_existing_tokens_file(tmp_path: Path) -> None:
+    tokens = tokens_with_print(tmp_path / "style" / "tokens.json")
+    before = tokens.read_bytes()
+    configure(tmp_path, "")
+
+    written = init(tmp_path, Path("style/tokens.json"))
+
+    assert written == [tmp_path / "pyproject.toml"]
+    assert tokens.read_bytes() == before
+    assert [t.name for t in figkit.project_style(tmp_path).themes] == ["light", "dark", "print"]
+
+
+def test_init_refuses_a_broken_tokens_file_and_a_missing_project(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match=r"pyproject\.toml"):
+        init(tmp_path, Path("tokens.json"))
+    configure(tmp_path, "")
+    (tmp_path / "tokens.json").write_text("{", encoding="utf-8")
+    before = (tmp_path / "pyproject.toml").read_bytes()
+
+    with pytest.raises(figkit.StyleError, match="not JSON"):
+        init(tmp_path, Path("tokens.json"))
+    assert (tmp_path / "pyproject.toml").read_bytes() == before
+
+
+def test_style_preview_draws_every_theme_of_the_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    tokens_with_print(tmp_path / "tokens.json")
+    configure(tmp_path, '[tool.figkit]\ntokens = "tokens.json"\n')
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["style", "preview", "out"]) == 0
+
+    names = {p.name for p in (tmp_path / "out").iterdir()}
+    assert names == {f"style{s}.{f}" for s in ("", "-dark", "-print") for f in ("png", "svg")}
+    assert check(tmp_path / "out", style=figkit.project_style(tmp_path)) == []
+    assert "style-print.svg" in capsys.readouterr().out
+
+
+def test_style_preview_reports_a_style_that_cannot_draw(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = json.loads(json.dumps(figkit.tokens()))
+    data["font"]["tick"] = 6
+    (tmp_path / "tokens.json").write_text(json.dumps(data), encoding="utf-8")
+
+    assert (
+        main(["style", "preview", str(tmp_path / "out"), "--style", str(tmp_path / "tokens.json")])
+        == 1
+    )
+    assert "below" in capsys.readouterr().err

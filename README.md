@@ -295,11 +295,26 @@ tokens = "figures/tokens.json"              # relative to pyproject.toml
 css = "../Website/src/styles/tokens.css"
 ```
 
+`figkit init` starts such a project: it copies the bundled tokens and their schema to
+`figures/tokens.json` and appends the table. `figkit style preview` then draws every series,
+the ramp and the status colours in each theme, so a change to the tokens shows before a real
+figure uses it.
+
 ## Command line
 
 ```sh
 figkit check [DIRECTORY ...] [--css CSS] [--style TOKENS] [--opaque NAME] [--any-width]
+figkit init [--tokens TOKENS] [--css CSS]
+figkit style preview [DIRECTORY] [--style TOKENS]
 ```
+
+`init` writes the tokens file, default `figures/tokens.json`, and its schema unless the file
+exists, and appends `[tool.figkit]` to the `pyproject.toml` of the working directory. It stops
+if the table is there already. `style preview` renders `style.svg` and `style.png` in every
+theme to `DIRECTORY`, default `figkit-preview`, from `--style` or `[tool.figkit]`. Text below
+the minimum size of the style fails the preview.
+
+`check` takes these options:
 
 | Option | Effect |
 | --- | --- |

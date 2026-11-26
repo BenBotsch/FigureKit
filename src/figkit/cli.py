@@ -1,4 +1,4 @@
-"""Command line: ``figkit check <directory>``."""
+"""Command line: ``figkit check``, ``figkit init`` and ``figkit style preview``."""
 
 import argparse
 import sys
@@ -7,7 +7,8 @@ from pathlib import Path
 
 from figkit.check import check, check_tokens
 from figkit.export import WEB_WIDTH
-from figkit.project import project
+from figkit.preview import preview
+from figkit.project import init, project
 from figkit.theme import StyleError, load_style
 
 
@@ -50,8 +51,77 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="TOKENS",
         help="tokens file of the style that wrote the figures, such as figures/tokens.json",
     )
+    starter = commands.add_parser(
+        "init",
+        help="copy the bundled style into the project and name it in [tool.figkit]",
+        description=(
+            "Writes the tokens and their schema, unless the tokens file exists, and appends "
+            "[tool.figkit] to the pyproject.toml of the working directory."
+        ),
+    )
+    starter.add_argument(
+        "--tokens",
+        type=Path,
+        default=Path("figures/tokens.json"),
+        metavar="TOKENS",
+        help="tokens file of the project (default: figures/tokens.json)",
+    )
+    starter.add_argument(
+        "--css", type=Path, metavar="CSS", help="stylesheet that figkit check compares"
+    )
+    styles = commands.add_parser("style", help="work with the style of the project")
+    actions = styles.add_subparsers(dest="action", required=True)
+    previewer = actions.add_parser(
+        "preview",
+        help="render a specimen of every token in every theme",
+        description=(
+            "Without --style the style comes from [tool.figkit] in the nearest pyproject.toml, "
+            "and without that it is the bundled one."
+        ),
+    )
+    previewer.add_argument(
+        "directory",
+        nargs="?",
+        type=Path,
+        default=Path("figkit-preview"),
+        help="folder of the specimen files (default: figkit-preview)",
+    )
+    previewer.add_argument("--style", type=Path, metavar="TOKENS", help="tokens file to preview")
     args = parser.parse_args(argv)
 
+    if args.command == "init":
+        return _init(args.tokens, args.css)
+    if args.command == "style":
+        return _preview(args.directory, args.style)
+    return _check(parser, args)
+
+
+def _init(tokens: Path, css: Path | None) -> int:
+    try:
+        written = init(Path.cwd(), tokens, css)
+    except (StyleError, OSError) as error:
+        print(error, file=sys.stderr)
+        return 1
+    for path in written:
+        print(f"{path}: written")
+    return 0
+
+
+def _preview(directory: Path, tokens: Path | None) -> int:
+    try:
+        style = project().style() if tokens is None else load_style(tokens)
+        paths = preview(directory, style)
+    except (StyleError, OSError, ValueError) as error:
+        print(error, file=sys.stderr)
+        for note in getattr(error, "__notes__", []):
+            print(note, file=sys.stderr)
+        return 1
+    for path in paths:
+        print(path)
+    return 0
+
+
+def _check(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
     try:
         settings = project()
         style = settings.style() if args.style is None else load_style(args.style)

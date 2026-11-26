@@ -6,6 +6,14 @@ section of that version.
 
 ## [Unreleased]
 
+### Added
+
+- `figkit init` copies the bundled tokens and their schema into a project and appends
+  `[tool.figkit]` to its `pyproject.toml`. An existing tokens file is kept and checked; an
+  existing table stops the command.
+- `figkit style preview` renders a specimen of every series, ramp and status colour in each
+  theme of the project style or of `--style`.
+
 ## [0.4.0] - 2026-11-26
 
 ### Added
