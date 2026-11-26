@@ -23,8 +23,8 @@ jobs:
       - run: uv run pre-commit run --all-files --show-diff-on-failure
       - run: uv run mypy
       - run: uv run pytest
-      - run: uv run figkit check docs/examples
-      - run: uv run figkit check docs/examples/style --style docs/examples/style/tokens.json
+      - run: uv run figkit check docs/examples --a11y
+      - run: uv run figkit check docs/examples/style --a11y --style docs/examples/style/tokens.json
       # The committed gallery must come out of the script unchanged on this platform.
       - run: uv run python scripts/examples.py
       - run: git diff --exit-code -- "docs/examples/*.svg" "docs/readme/*.svg"
