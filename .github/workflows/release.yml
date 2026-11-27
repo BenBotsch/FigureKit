@@ -1,7 +1,8 @@
 name: Release
 
 # A pushed tag v<version> builds the package, tests the wheel on every platform and publishes the
-# GitHub release with the wheel, the source archive and the notes from CHANGELOG.md.
+# package on PyPI and the GitHub release with the wheel, the source archive and the notes from
+# CHANGELOG.md.
 on:
   push:
     tags: ["v*"]
@@ -49,8 +50,24 @@ jobs:
       - run: bash scripts/check_package.sh
         shell: bash
 
-  publish:
+  # Trusted publishing: PyPI accepts the upload from this workflow in the environment pypi, so
+  # the repository holds no token. A version that PyPI already has fails here, before GitHub.
+  pypi:
     needs: wheel
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/project/figurekit/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish:
+    needs: pypi
     runs-on: ubuntu-24.04
     permissions:
       contents: write

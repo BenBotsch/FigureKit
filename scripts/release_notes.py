@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 
 CHANGELOG = Path(__file__).resolve().parents[1] / "CHANGELOG.md"
-REPOSITORY = "https://github.com/BenBotsch/FigureKit"
 
 
 def section(changelog: str, version: str) -> str:
@@ -33,7 +32,7 @@ def section(changelog: str, version: str) -> str:
 
 def notes(changelog: str, version: str) -> str:
     """Install command, the changelog section and a link to the changes since the last tag."""
-    install = f'```sh\nuv add "figkit @ git+{REPOSITORY}@v{version}"\n```'
+    install = f'```sh\nuv add "figurekit=={version}"\n```'
     link = re.search(rf"^\[{re.escape(version)}\]: (\S+)$", changelog, re.MULTILINE)
     changes = f"\n\n**Changes:** {link.group(1)}" if link else ""
     return f"{install}\n\n{section(changelog, version)}{changes}\n"

@@ -6,6 +6,13 @@ section of that version.
 
 ## [Unreleased]
 
+### Changed
+
+- The package is published on PyPI as `figurekit`, since `figkit` belongs to another project
+  there. Install it with `uv add figurekit`; the module and the command stay `figkit`. A project
+  that installed the Git tag replaces `figkit @ git+...` with `figurekit` in its dependencies.
+- The release workflow uploads the wheel and the source archive to PyPI with trusted publishing.
+
 ## [0.5.0] - 2026-11-26
 
 ### Added

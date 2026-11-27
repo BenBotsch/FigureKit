@@ -1,16 +1,30 @@
 [project]
-name = "figkit"
+name = "figurekit"
 version = "0.5.0"
 description = "One figure style for every project: light and dark themes, transparent SVG and PNG, Bricolage Grotesque and JetBrains Mono, reproducible files."
-readme = "README.md"
+dynamic = ["readme"]
 license = "MIT"
 license-files = ["LICENSE", "src/figkit/fonts/OFL-*.txt"]
 requires-python = ">=3.12"
 dependencies = ["matplotlib>=3.9", "numpy>=1.26", "pillow>=10.4"]
+keywords = ["matplotlib", "figures", "plotting", "style", "dark mode", "svg"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Matplotlib",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Typing :: Typed",
+]
 
 [project.urls]
 Repository = "https://github.com/BenBotsch/FigureKit"
 Issues = "https://github.com/BenBotsch/FigureKit/issues"
+Changelog = "https://github.com/BenBotsch/FigureKit/blob/main/CHANGELOG.md"
 
 [project.scripts]
 figkit = "figkit.cli:main"
@@ -25,8 +39,23 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
+
+# PyPI shows the README without the repository, so relative images and links point to GitHub.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(src=")(?!https?://)'
+replacement = '\1https://raw.githubusercontent.com/BenBotsch/FigureKit/main/'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(\]\()(?!https?://|#)'
+replacement = '\1https://github.com/BenBotsch/FigureKit/blob/main/'
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/figkit"]

@@ -37,7 +37,7 @@ def test_changelog_has_the_version_of_the_package() -> None:
     ]
     result = _run(f"v{version}")
     assert result.returncode == 0, result.stderr
-    assert f"FigureKit@v{version}" in result.stdout
+    assert f"figurekit=={version}" in result.stdout
 
 
 def test_notes_hold_install_section_and_changes() -> None:
@@ -55,7 +55,7 @@ def test_notes_hold_install_section_and_changes() -> None:
         ]
     )
     notes = _release_notes().notes(changelog, "1.1.0")
-    assert '@v1.1.0"' in notes
+    assert 'uv add "figurekit==1.1.0"' in notes
     assert "### Fixed\n- this" in notes
     assert "that" not in notes and "next" not in notes
     assert notes.endswith("**Changes:** https://example.org/compare/v1.0.0...v1.1.0\n")

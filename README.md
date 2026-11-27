@@ -59,10 +59,11 @@ or check in CI that every pair exists and the colours match the stylesheet of th
 
 ## Quickstart
 
-**1. Install** with a pinned tag, so a style change reaches a project only when it updates the tag:
+**1. Install** from PyPI. The package is called `figurekit`, the module and the command `figkit`.
+`uv.lock` pins the version, so a style change reaches a project only when it upgrades:
 
 ```sh
-uv add "figkit @ git+https://github.com/BenBotsch/FigureKit@v0.5.0"
+uv add figurekit
 ```
 
 **2. Draw** a figure as a function of the theme and let `render` write it:
@@ -396,7 +397,7 @@ uv build && bash scripts/check_package.sh   # render and check figures with the 
 A release: move the entries under `Unreleased` in [CHANGELOG.md](CHANGELOG.md) to a new version
 section, set that version in `pyproject.toml` and `uv.lock` (`uv version 0.4.0`), and push the tag
 `v0.4.0`. The release workflow checks that tag and version match, tests the wheel on Ubuntu and
-Windows and publishes the GitHub release with the notes of that section.
+Windows, uploads the package to PyPI and publishes the GitHub release with the notes of that section.
 
 The colours and type sizes of the bundled style live only in
 [src/figkit/tokens.json](src/figkit/tokens.json).

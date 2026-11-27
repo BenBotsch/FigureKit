@@ -7,9 +7,9 @@ set -euo pipefail
 shopt -s nullglob
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-wheels=("$root"/dist/figkit-*.whl)
+wheels=("$root"/dist/figurekit-*.whl)
 if [ "${#wheels[@]}" -ne 1 ]; then
-  echo "expected one figkit wheel in dist/, found ${#wheels[@]}; run uv build in a clean dist/" >&2
+  echo "expected one figurekit wheel in dist/, found ${#wheels[@]}; run uv build in a clean dist/" >&2
   exit 1
 fi
 

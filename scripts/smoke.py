@@ -50,7 +50,7 @@ def problems_of_install() -> list[str]:
     if not list((package / "fonts").glob("*.ttf")):
         found.append("the wheel lacks the fonts")
     # The metadata carries the licences, apart from the copies next to the fonts.
-    files = (Path(str(file)) for file in metadata.files("figkit") or ())
+    files = (Path(str(file)) for file in metadata.files("figurekit") or ())
     licences = {file.name for file in files if "licenses" in file.parts}
     for licence in ("LICENSE", "OFL-BricolageGrotesque.txt", "OFL-JetBrainsMono.txt"):
         if licence not in licences:
@@ -75,7 +75,7 @@ def main(argv: list[str]) -> int:
     for problem in problems:
         print(problem, file=sys.stderr)
     if not problems:
-        print(f"figkit {metadata.version('figkit')} from the wheel: ok")
+        print(f"figkit {metadata.version('figurekit')} from the wheel: ok")
     return 1 if problems else 0
 
 
