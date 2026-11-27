@@ -596,8 +596,8 @@ L 152.039044 29.17
      </g>
     </g>
     <g id="text_12">
-     <!-- macro F1 -->
-     <g style="fill: #a6abba" transform="translate(19.715547 108.821266) rotate(-90) scale(0.09 -0.09)">
+     <!-- macro $F_1$ -->
+     <g style="fill: #a6abba" transform="translate(19.715547 108.559) rotate(-90) scale(0.09 -0.09)">
       <defs>
        <path id="BricolageGrotesque-Regular-f3" d="M 512 0 
 L 512 2067 
@@ -777,34 +777,28 @@ Q 1478 397 1958 397
 z
 " transform="scale(0.015625)"/>
        <path id="BricolageGrotesque-Regular-1a4" transform="scale(0.015625)"/>
-       <path id="BricolageGrotesque-Regular-34" d="M 557 0 
-L 557 4224 
-L 1139 4224 
-L 1139 0 
-L 557 0 
-z
-M 787 1811 
-L 787 2317 
-L 3213 2317 
-L 3213 1811 
-L 787 1811 
-z
-M 787 3706 
-L 787 4224 
-L 3494 4224 
-L 3494 3706 
-L 787 3706 
+       <path id="DejaVuSans-Oblique-29" d="M 1081 4666 
+L 3756 4666 
+L 3653 4134 
+L 1606 4134 
+L 1338 2759 
+L 3188 2759 
+L 3084 2228 
+L 1234 2228 
+L 800 0 
+L 172 0 
+L 1081 4666 
 z
 " transform="scale(0.015625)"/>
       </defs>
-      <use xlink:href="#BricolageGrotesque-Regular-f3"/>
-      <use xlink:href="#BricolageGrotesque-Regular-a3" transform="translate(89.703125 0)"/>
-      <use xlink:href="#BricolageGrotesque-Regular-bc" transform="translate(145.609375 0)"/>
-      <use xlink:href="#BricolageGrotesque-Regular-114" transform="translate(200.609375 0)"/>
-      <use xlink:href="#BricolageGrotesque-Regular-fa" transform="translate(239.8125 0)"/>
-      <use xlink:href="#BricolageGrotesque-Regular-1a4" transform="translate(300.015625 0)"/>
-      <use xlink:href="#BricolageGrotesque-Regular-34" transform="translate(325.421875 0)"/>
-      <use xlink:href="#BricolageGrotesque-Regular-14b" transform="translate(384.03125 0)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-f3" transform="translate(0 0.09375)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-a3" transform="translate(89.699921 0.09375)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-bc" transform="translate(145.599869 0.09375)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-114" transform="translate(200.599823 0.09375)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-fa" transform="translate(240.599792 0.09375)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-1a4" transform="translate(300.799728 0.09375)"/>
+      <use xlink:href="#DejaVuSans-Oblique-29" transform="translate(326.199707 0.09375)"/>
+      <use xlink:href="#BricolageGrotesque-Regular-14b" transform="translate(383.719238 -16.3125) scale(0.7)"/>
      </g>
     </g>
    </g>

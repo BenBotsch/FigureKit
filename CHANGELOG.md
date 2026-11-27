@@ -6,6 +6,21 @@ section of that version.
 
 ## [Unreleased]
 
+### Added
+
+- `font.math` in the tokens names the fonts of formulas: `italic` for variables and `fallback`
+  for characters that the other fonts lack.
+- `render` fails with the character and the figure when a text or formula needs a glyph that no
+  font has, before it writes any file. `complete_glyphs` makes the same check for other code.
+
+### Changed
+
+- Formulas set variables and Greek letters in DejaVu Sans italic, which comes with matplotlib.
+  Before, variables were upright in Bricolage Grotesque and Greek letters came from the serif
+  Computer Modern. Figures with formulas change on the next render.
+- `register_fonts` fails if the math italic has no italic face instead of setting variables
+  upright.
+
 ## [0.5.1] - 2026-11-27
 
 ### Changed

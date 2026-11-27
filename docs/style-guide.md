@@ -69,6 +69,11 @@ OKLCH lightness. Series below 3:1 against the page stay allowed, see above.
 - Use a grid on one axis only, as hairlines. Category axes have no spine and no tick marks.
 - Lines are 2 px wide. Markers are at least 6 pt, and only where points matter.
 - No text below 8 pt. `render` stops with an error that names the text and the figure.
+- Formulas go between dollar signs, `$\hat{p}_i$`. Variables and Greek letters are set in
+  DejaVu Sans italic, which comes with matplotlib, because Bricolage Grotesque has neither an
+  italic nor Greek. Numbers and upright text stay in Bricolage Grotesque. `font.math` in the
+  tokens chooses other fonts. A character that no font has stops `render` with an error instead of
+  showing an empty box.
 
 ## 4. Files
 

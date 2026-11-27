@@ -162,7 +162,7 @@ for (i, j), count in np.ndenumerate(counts):
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/examples/multiples-dark.svg">
-  <img src="docs/examples/multiples.svg" alt="Three panels of learning curves, macro F1 against training images, each line with a shaded band; the middle one points out its plateau.">
+  <img src="docs/examples/multiples.svg" alt="Three panels of learning curves, macro F₁ against training images, each line with a shaded band; the middle one points out its plateau.">
 </picture>
 
 ```python
@@ -295,6 +295,7 @@ and `status`.
 | --- | --- |
 | `default` | Theme whose files carry no suffix; every other theme writes `-<name>`. |
 | `pair` | Theme a page swaps with, such as light and dark. `figkit check` requires the file of the pair; a theme without one stands alone. |
+| `font.math` | Fonts of formulas between dollar signs: `italic`, a family with an italic face for variables and Greek letters, by default DejaVu Sans, and `fallback`, the matplotlib font for other missing characters, `cm`, `stix` or `stixsans` (default). |
 | `font.files` | Glob patterns of font files, relative to the tokens file; without them the bundled fonts apply. matplotlib keeps one file per family in a process, so own font files need family names of their own. |
 | `css` | Maps custom properties of the website, `--color-text: light-dark(#111111, #eeeeee)`, to tokens such as `["ink"]` or `["pages", 0]`. `figkit check --css` compares the first colour with the default theme and the second with its pair. |
 
@@ -369,7 +370,7 @@ $ uv run figkit check --css ../Portfolio/src/styles/tokens.css
 | Languages | `Caption`, `language`, `localize`, `number` |
 | Style | `Theme`, `Typography`, `Style`, `StyleError`, `load_style`, `parse_style`, `DEFAULT`, `LIGHT`, `DARK`, `THEMES`, `TYPE`, `tokens`, `rc`, `register_fonts` |
 | Project | `Project`, `project`, `project_style` |
-| Checks | `check_text` and the `figkit check` command |
+| Checks | `check_text`, `complete_glyphs` and the `figkit check` command |
 
 Importing figkit leaves the matplotlib backend alone; a batch job that only writes files can set
 `MPLBACKEND=Agg`.

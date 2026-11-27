@@ -25,6 +25,8 @@ _COLOURS = ("surface", "ink", "secondary", "muted", "grid", "axis")
 _LISTS = ("pages", "series", "ramp")
 _STATUS = ("good", "warning", "serious", "critical")
 _SIZES = ("size", "title", "label", "tick", "annotation", "minimum")
+# Fallback fonts that matplotlib bundles for characters missing in the text fonts of mathtext.
+MATH_FALLBACKS = ("cm", "stix", "stixsans")
 # Custom property of a stylesheet and the token it equals in both themes: (key, list index).
 CSS_TOKENS: Mapping[str, tuple[str, int | None]] = MappingProxyType(
     {
@@ -65,6 +67,10 @@ class Typography:
         annotation: Size of values and annotations on the plot.
         minimum: Smallest size allowed; :func:`figkit.render` fails below it.
         files: Font files of both families. Empty means the fonts bundled with figkit.
+        math_italic: Family of italic variables in mathtext, ``$x_i$``. Its italic face must be
+            installed; DejaVu Sans comes with matplotlib.
+        math_fallback: Font of mathtext for characters that ``sans`` and ``math_italic`` lack,
+            such as Greek letters and operators: ``cm``, ``stix`` or ``stixsans``.
     """
 
     sans: str
@@ -76,6 +82,8 @@ class Typography:
     annotation: float
     minimum: float
     files: tuple[Path, ...] = ()
+    math_italic: str = "DejaVu Sans"
+    math_fallback: str = "stixsans"
 
     @classmethod
     def from_tokens(cls, raw: Mapping[str, Any], files: Sequence[Path] = ()) -> "Typography":
@@ -90,6 +98,11 @@ class Typography:
             annotation=float(raw["annotation"]),
             minimum=float(raw["minimum"]),
             files=tuple(files),
+            **{
+                f"math_{key}": value
+                for key, value in raw.get("math", {}).items()
+                if key in ("italic", "fallback")
+            },
         )
 
 
@@ -292,7 +305,8 @@ def _problems(data: object) -> list[str]:
 def _font_problems(font: object) -> list[str]:
     if not isinstance(font, dict):
         return ["font: must be an object"]
-    problems = _unknown("font.", font, ("sans", "mono", *_SIZES, "files"))
+    problems = _unknown("font.", font, ("sans", "mono", *_SIZES, "files", "math"))
+    problems += _math_problems(font.get("math", {}))
     problems += [
         f"font.{key}: must be a family name"
         for key in ("sans", "mono")
@@ -322,6 +336,17 @@ def _font_problems(font: object) -> list[str]:
             for f in files
             if Path(f).anchor or Path(f).is_absolute()
         ]
+    return problems
+
+
+def _math_problems(math: object) -> list[str]:
+    if not isinstance(math, dict):
+        return ["font.math: must be an object"]
+    problems = _unknown("font.math.", math, ("italic", "fallback"))
+    if "italic" in math and (not isinstance(math["italic"], str) or not math["italic"]):
+        problems.append("font.math.italic: must be a family name")
+    if "fallback" in math and math["fallback"] not in MATH_FALLBACKS:
+        problems.append(f"font.math.fallback: must be one of {', '.join(MATH_FALLBACKS)}")
     return problems
 
 
@@ -451,7 +476,30 @@ def register_fonts(typography: Typography | None = None) -> tuple[str, str]:
                 "keeps one file per family, so two styles need fonts of different names"
             )
             raise RuntimeError(msg)
+    _check_math_italic(typography.math_italic)
     return typography.sans, typography.mono
+
+
+def _check_math_italic(family: str) -> None:
+    """Fail unless ``family`` has an italic face; matplotlib would set variables upright."""
+    try:
+        found = Path(
+            font_manager.findfont(
+                font_manager.FontProperties(family=family, style="italic"),
+                fallback_to_default=False,
+            )
+        )
+    except ValueError:
+        found = None
+    italic = found is not None and any(
+        entry.name == family
+        and entry.style in ("italic", "oblique")
+        and Path(entry.fname).samefile(found)
+        for entry in font_manager.fontManager.ttflist
+    )
+    if not italic:
+        msg = f"font.math.italic {family!r} has no italic face that matplotlib can find"
+        raise RuntimeError(msg)
 
 
 def rc(theme: Theme) -> dict[str, Any]:
@@ -500,11 +548,13 @@ def rc(theme: Theme) -> dict[str, Any]:
         "mathtext.fontset": "custom",
         # Mathtext loads every face of the custom set for each label, log ticks too. Faces left
         # at their defaults fall back to generic families such as cursive, which a bare Linux
-        # system lacks, so all of them point to the bundled fonts. The bundle has semibold.
+        # system lacks, so all of them point to installed fonts. The bundle has semibold but no
+        # italic and no Greek, so variables take the math italic and the rest the fallback.
         "mathtext.rm": sans,
-        "mathtext.it": f"{sans}:italic",
+        "mathtext.it": f"{size.math_italic}:italic",
         "mathtext.bf": f"{sans}:semibold",
-        "mathtext.bfit": f"{sans}:italic:semibold",
+        "mathtext.bfit": f"{size.math_italic}:italic:bold",
+        "mathtext.fallback": size.math_fallback,
         "mathtext.sf": sans,
         "mathtext.tt": mono,
         "mathtext.cal": sans,

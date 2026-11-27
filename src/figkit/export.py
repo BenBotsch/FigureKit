@@ -13,10 +13,13 @@ at the same left edge. A narrower drawing leaves empty space on the right.
 import base64
 import hashlib
 import io
+import logging
 import re
 import struct
+import warnings
 import zlib
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from itertools import groupby
 from pathlib import Path
@@ -299,6 +302,46 @@ def check_text(figure: Figure, minimum: float | None = None) -> None:
             raise ValueError(msg)
 
 
+@contextmanager
+def complete_glyphs() -> Iterator[None]:
+    """Fail on a character that no font of the style has, once the block has laid out text.
+
+    Matplotlib draws a missing glyph as an empty box or a dummy symbol and only warns: a warning
+    for plain text and a log record for mathtext. The block collects both; other warnings pass
+    through unchanged. Mathtext caches its layouts, so a formula that was drawn earlier in the same
+    process without this check is not reported again.
+
+    Raises:
+        ValueError: If the block drew a missing glyph; the message lists each one.
+    """
+    missing: list[str] = []
+
+    class Collect(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            if "does not have a glyph" in record.getMessage():
+                missing.append(record.getMessage())
+
+    handler = Collect(logging.WARNING)
+    log = logging.getLogger("matplotlib.mathtext")
+    log.addHandler(handler)
+    try:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            yield
+    finally:
+        log.removeHandler(handler)
+    for warning in caught:
+        if "missing from font" in str(warning.message):
+            missing.append(str(warning.message))
+        else:
+            warnings.warn_explicit(
+                warning.message, warning.category, warning.filename, warning.lineno
+            )
+    if missing:
+        msg = "missing glyphs: " + "; ".join(dict.fromkeys(missing))
+        raise ValueError(msg)
+
+
 def render(
     directory: Path,
     name: str,
@@ -333,8 +376,8 @@ def render(
         The written files, in the order of ``themes`` and then ``outputs``.
 
     Raises:
-        ValueError: If the drawing does not fit the canvas or has text below the minimum size;
-            the message names the figure.
+        ValueError: If the drawing does not fit the canvas, has text below the minimum size or
+            a character that no font of the style has; the message names the figure.
     """
     style = style or DEFAULT
     paths: list[Path] = []
@@ -350,6 +393,9 @@ def render(
                 try:
                     localize_ticks(figure, language or "en")
                     check_text(figure, theme.type.minimum)
+                    # A layout pass meets every glyph, so nothing is written with a gap.
+                    with complete_glyphs():
+                        figure.draw_without_rendering()
                     paths.extend(
                         save(
                             figure,

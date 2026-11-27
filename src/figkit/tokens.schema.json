@@ -29,6 +29,23 @@
           "type": "array",
           "description": "Glob patterns of the font files, relative to the tokens file. Without them figkit uses its bundled fonts.",
           "items": {"type": "string", "minLength": 1}
+        },
+        "math": {
+          "type": "object",
+          "description": "Fonts of formulas between dollar signs. Without it variables are DejaVu Sans italic and other characters STIX Sans.",
+          "additionalProperties": false,
+          "properties": {
+            "$comment": {"type": "string"},
+            "italic": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Family with an italic face for variables; DejaVu Sans comes with matplotlib."
+            },
+            "fallback": {
+              "enum": ["cm", "stix", "stixsans"],
+              "description": "Font of matplotlib for characters that the other fonts lack, such as Greek letters."
+            }
+          }
         }
       }
     },

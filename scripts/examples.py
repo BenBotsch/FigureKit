@@ -124,7 +124,7 @@ def multiples(theme: Theme) -> Figure:
         ax.set_title(name, fontsize=theme.type.label, loc="left")
         figkit.grid(ax, "y")
     panels[0].set_ylim(0.3, 1.0)
-    panels[0].set_ylabel("macro F1")
+    panels[0].set_ylabel("macro $F_1$")
     panels[1].set_xlabel("training images")
     plateau = float(np.asarray(panels[1].lines[0].get_ydata())[-1])
     figkit.callout(panels[1], "plateau", (3200, plateau), (-22, -22), theme)
