@@ -6,6 +6,8 @@ section of that version.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-28
+
 ### Added
 
 - `font.math` in the tokens names the fonts of formulas: `italic` for variables and `fallback`
@@ -191,7 +193,8 @@ section of that version.
   label of a vertical reference line goes on either side.
 - `figkit check` for light/dark pairs, transparency and file sizes.
 
-[Unreleased]: https://github.com/BenBotsch/FigureKit/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/BenBotsch/FigureKit/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/BenBotsch/FigureKit/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/BenBotsch/FigureKit/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/BenBotsch/FigureKit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BenBotsch/FigureKit/compare/v0.3.1...v0.4.0

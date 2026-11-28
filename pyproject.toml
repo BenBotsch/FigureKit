@@ -1,6 +1,6 @@
 [project]
 name = "figurekit"
-version = "0.5.1"
+version = "0.6.0"
 description = "One figure style for every project: light and dark themes, transparent SVG and PNG, Bricolage Grotesque and JetBrains Mono, reproducible files."
 dynamic = ["readme"]
 license = "MIT"
