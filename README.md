@@ -179,6 +179,27 @@ for points instead of lines.
 </details>
 
 <details>
+<summary><b>Formulas</b> with italic variables and Greek letters</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/examples/formula-dark.svg">
+  <img src="docs/examples/formula.svg" alt="Training loss per epoch with error bars and a fitted exponential decay, labelled L(t) = α e^(−t/τ) + β, with the fitted α, τ and β in the subtitle.">
+</picture>
+
+```python
+ax.plot(t, alpha * np.exp(-t / tau) + beta, color=theme.series[0])
+figkit.error_bars(ax, epochs, loss, error, theme)
+ax.text(14.6, 1.1, r"$L(t) = \alpha\,e^{-t/\tau} + \beta$", ha="right", va="center")
+subtitle = rf"Mean of five seeds, fit $\alpha = {alpha}$, $\tau = {tau}$, $\beta = {beta}$"
+figkit.title(ax, "Training loss", theme, subtitle=subtitle)
+```
+
+Variables and Greek letters are set in the italic of `font.math`; `render` stops before writing
+if a formula needs a glyph that no font has.
+
+</details>
+
+<details>
 <summary><b>Social card</b> for Open Graph, 1200 x 630</summary>
 
 <img src="docs/examples/card.png" alt="Social card with a project title, a one-line summary and three tiles: accuracy 0.97, latency p95 4.1 ms, model size 11 MB." width="70%">

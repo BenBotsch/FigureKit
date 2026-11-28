@@ -12,6 +12,7 @@ section of that version.
   for characters that the other fonts lack.
 - `render` fails with the character and the figure when a text or formula needs a glyph that no
   font has, before it writes any file. `complete_glyphs` makes the same check for other code.
+- The gallery shows a fitted decay with its formula and the fitted parameters in the subtitle.
 
 ### Changed
 

@@ -2,7 +2,7 @@
 
 Run with ``uv run python scripts/examples.py``. The figures show the parts of the style: a line
 chart with direct labels, bars with values and a reference line, a heatmap, small multiples
-with confidence bands and a social card.
+with confidence bands, a fit with its formula and a social card.
 
 ``docs/examples/style`` shows the line chart in the example style of its ``tokens.json``, with a
 print theme. ``docs/readme`` holds the images that only the README shows: the bar chart in plain
@@ -131,6 +131,36 @@ def multiples(theme: Theme) -> Figure:
     return figure
 
 
+def formula(theme: Theme) -> Figure:
+    """Training loss with error bars and a fitted exponential decay, its formula on the chart."""
+    rng = np.random.default_rng(2)
+    epochs = np.arange(1, 16)
+    alpha, tau, beta = 2.1, 3.4, 0.18
+    loss = alpha * np.exp(-epochs / tau) + beta + rng.normal(0, 0.03, epochs.size)
+    error = rng.uniform(0.03, 0.08, epochs.size)
+    t = np.linspace(1, 15, 200)
+    figure, ax = plt.subplots(figsize=(figkit.WEB_WIDTH, 3.2))
+    ax.plot(t, alpha * np.exp(-t / tau) + beta, color=theme.series[0])
+    figkit.error_bars(ax, epochs, loss, error, theme)
+    ax.plot(epochs, loss, "o", color=theme.series[0], markersize=3.5)
+    ax.text(
+        14.6,
+        1.1,
+        r"$L(t) = \alpha\,e^{-t/\tau} + \beta$",
+        ha="right",
+        va="center",
+        fontsize=theme.type.label + 1,
+    )
+    subtitle = rf"Mean of five seeds, fit $\alpha = {alpha}$, $\tau = {tau}$, $\beta = {beta}$"
+    figkit.title(ax, "Training loss", theme, subtitle=subtitle)
+    figkit.grid(ax, "y")
+    ax.set_xlabel("epoch $t$")
+    ax.set_ylabel("loss $L$")
+    ax.set_xlim(0.5, 15.5)
+    ax.set_ylim(0, 1.8)
+    return figure
+
+
 def card(theme: Theme) -> Figure:
     """A 1200 x 630 preview with headline numbers."""
     figure = plt.figure(figsize=figkit.CARD_INCHES)
@@ -206,6 +236,7 @@ def main() -> None:
         ("bars", bars),
         ("heatmap", heatmap),
         ("multiples", multiples),
+        ("formula", formula),
     ):
         for path in figkit.render(OUT, name, draw):
             print(path.relative_to(ROOT))
